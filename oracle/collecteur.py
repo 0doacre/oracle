@@ -1,11 +1,13 @@
 """Un relevé complet : collecte, filtre, historique, score, alertes, briefing."""
 
 import argparse
+import json
 import os
 import sys
 import time
 import traceback
 from datetime import datetime, timezone
+from pathlib import Path
 
 from oracle import briefing
 from oracle.dossiers import Suivi, charger as charger_suivi
@@ -13,7 +15,10 @@ from oracle.historique import Historique
 from oracle.http import ErreurReseau
 from oracle.selection import NB_MARCHES, PAR_DOSSIER, choisir, est_joue, est_liquide, scorer, thematiser
 from oracle.source import Source, collecter_tout
+from oracle.courbes import mini_courbe, par_heure
 from oracle.temps import a_paris
+
+H = 3600
 
 NB_CANDIDATS_ALERTE = 60  # un appel « trades » par candidat : on n'interroge pas les 1 000
 
@@ -52,7 +57,24 @@ def relever(sources: list[Source], historique: Historique,
                 completer(m)
             except ErreurReseau as e:
                 erreurs.setdefault(f"{m.source}:regles", str(e))
+        # 24 cases d'une heure, la dernière contient le relevé de maintenant.
+        m.courbe_24h = mini_courbe([v for _, v in par_heure(
+            historique.serie(m.source, m.id, ts - 24 * H), ts - 23 * H, ts + H)])
     return briefing.construire(choisis, total, erreurs, maintenant)
+
+
+def series_7_jours(donnees: dict, historique: Historique, maintenant: datetime) -> dict:
+    """Pour la page : l'évolution heure par heure, sur 7 jours, des marchés retenus."""
+    ts = int(maintenant.timestamp())
+    series = {}
+    for m in donnees["markets"]:
+        points = par_heure(historique.serie(m["source"], m["id"], ts - 7 * 24 * H),
+                           ts - (7 * 24 - 1) * H, ts + H)
+        if points:
+            series[f"{m['source']}:{m['id']}"] = {
+                "title": m["title"], "dossier": m.get("dossier"),
+                "points": [[heure, round(v, 1)] for heure, v in points]}
+    return {"generated_at": maintenant.isoformat(timespec="seconds"), "series": series}
 
 
 def _chercher_alertes(candidats, par_nom, maintenant, erreurs) -> None:
@@ -76,6 +98,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--base", default="oracle_state.db")
     p.add_argument("--pages-kalshi", type=int, default=None,
                    help="limite de pages Kalshi (essais rapides)")
+    p.add_argument("--historique", default=None,
+                   help="fichier JSON des courbes 7 jours pour la page (facultatif)")
     p.add_argument("--journal", default=None,
                    help="fichier où ajouter le compte rendu (tâche planifiée : pas de console)")
     args = p.parse_args(argv)
@@ -88,6 +112,11 @@ def main(argv: list[str] | None = None) -> int:
         try:
             donnees = relever([kalshi, Polymarket(), Manifold()], historique, journal=journal,
                               suivi=charger_suivi())
+            if args.historique:
+                courbes = series_7_jours(donnees, historique,
+                                         datetime.fromisoformat(donnees["meta"]["generated_at"]))
+                Path(args.historique).write_text(
+                    json.dumps(courbes, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         finally:
             historique.fermer()
         taille = briefing.ecrire(donnees, args.sortie)

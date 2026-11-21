@@ -84,7 +84,9 @@ def _importance(m: dict) -> float:
 
 
 def _phrase(m: dict) -> str:
-    texte = f"« {m['title']} » : {_nombre(m['yes_prob'])} % au OUI ({m['source']})"
+    # La mini-courbe (24 h, une case par heure) suit le prix : elle montre d'où il vient.
+    courbe = f" {m['sparkline_24h']}" if m.get("sparkline_24h") else ""
+    texte = f"« {m['title']} » : {_nombre(m['yes_prob'])} % au OUI{courbe} ({m['source']})"
     raisons = _notable(m)
     return texte + (" — " + " ; ".join(raisons) if raisons else "") + "."
 

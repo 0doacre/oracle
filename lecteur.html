@@ -157,6 +157,14 @@ footer { color: var(--doux); font-size: 12px; margin-top: 28px; }
       </div>
     </section>
 
+    <section class="panneau" id="p-courbes" hidden>
+      <div class="ligne" style="justify-content:space-between">
+        <h2 style="margin:0">Évolution sur 7 jours</h2>
+        <label>Dossier <select id="courbe-dossier"></select></label>
+      </div>
+      <div class="cadre" style="height:320px;margin-top:10px"><canvas id="g-courbes" aria-label="Évolution des probabilités sur 7 jours"></canvas></div>
+    </section>
+
     <p class="compte" id="compte"></p>
     <section class="grille" id="grille"></section>
   </div>
@@ -232,6 +240,11 @@ async function chargerAuto() {
   // Sur la page publiée, le point du dernier relevé est à côté du lecteur.
   fetch("./point.html", { method: "HEAD", cache: "no-store" })
     .then((r) => { if (r.ok) $("lien-point").hidden = false; }).catch(() => {});
+  // Les courbes 7 jours (écrites par collecteur.py --historique) : facultatives.
+  fetch("./historique.json", { cache: "no-store" })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((h) => { if (h && h.series) { etat.historique = h; if (etat.donnees) rendreCourbes(); } })
+    .catch(() => {});
   try {
     const r = await fetch("./briefing_oracle.json", { cache: "no-store" });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -303,6 +316,7 @@ function rendre() {
   const liste = filtres();
   rendreCartes(liste);
   rendreGraphiques(liste);
+  rendreCourbes();
 }
 
 function rendreEntete() {
@@ -343,7 +357,7 @@ function rendrePilules() {
   const boutons = [null, ...presentes].map((c) => {
     const b = el("button", { class: "pilule", type: "button", "aria-pressed": String(etat.categorie === c),
       text: `${c ?? "Toutes"} · ${compte(c)}` });
-    b.addEventListener("click", () => { etat.categorie = c; rendre(); });
+    b.addEventListener("click", () => { etat.categorie = c; if (c) etat.courbeDossier = c; rendre(); });
     return b;
   });
   $("pilules").replaceChildren(...boutons);
@@ -494,6 +508,46 @@ $("tri").addEventListener("change", (e) => { etat.tri = e.target.value; rendre()
 for (const t of ["dragenter", "dragover"]) document.addEventListener(t, (e) => { e.preventDefault(); $("accueil").classList.add("survol"); });
 for (const t of ["dragleave", "drop"]) document.addEventListener(t, (e) => { e.preventDefault(); $("accueil").classList.remove("survol"); });
 document.addEventListener("drop", (e) => { const f = e.dataTransfer?.files?.[0]; if (f) lireFichier(f); });
+
+$("courbe-dossier").addEventListener("change", (e) => { etat.courbeDossier = e.target.value; rendreCourbes(); });
+
+// ---------- Courbes 7 jours ----------
+function rendreCourbes() {
+  const h = etat.historique;
+  const panneau = $("p-courbes");
+  if (!h || etat.demo || typeof Chart === "undefined") { panneau.hidden = true; return; }
+  const series = Object.values(h.series);
+  const noms = [...new Set(series.map((s) => s.dossier || HORS))]
+    .sort((a, b) => (a === HORS) - (b === HORS));
+  if (!noms.length) { panneau.hidden = true; return; }
+  panneau.hidden = false;
+  if (!noms.includes(etat.courbeDossier)) etat.courbeDossier = noms[0];
+  const choix = $("courbe-dossier");
+  choix.replaceChildren(...noms.map((n) => el("option", { value: n, text: n })));
+  choix.value = etat.courbeDossier;
+  const lot = series.filter((s) => (s.dossier || HORS) === etat.courbeDossier);
+  const debut = Math.min(...lot.map((s) => s.points[0][0]));
+  graphiques.courbes?.destroy();
+  graphiques.courbes = new Chart($("g-courbes"), {
+    type: "line",
+    data: { datasets: lot.map((s, i) => ({
+      label: s.title.length > 60 ? s.title.slice(0, 59) + "…" : s.title,
+      data: s.points.map(([t, v]) => ({ x: t * 1000, y: v })),
+      borderColor: COULEURS[i % COULEURS.length], backgroundColor: COULEURS[i % COULEURS.length],
+      borderWidth: 2, pointRadius: 0, tension: 0.2 })) },
+    options: {
+      maintainAspectRatio: false, animation: false, interaction: { mode: "nearest", intersect: false },
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: {
+          title: (i) => new Date(i[0].parsed.x).toLocaleString("fr-FR", { weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+          label: (i) => `${i.dataset.label} : ${nf1.format(i.parsed.y)} %` } } },
+      scales: {
+        x: { type: "linear", min: debut * 1000,
+             ticks: { maxTicksLimit: 8, callback: (v) => new Date(v).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit" }) } },
+        y: { ticks: { callback: (v) => `${v} %` } } },
+    },
+  });
+}
 
 window.oracle = { charger };  // pour déboguer depuis la console
 chargerAuto();

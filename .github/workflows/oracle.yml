@@ -56,7 +56,7 @@ jobs:
       - name: Relevé
         run: |
           mkdir -p etat site
-          python collecteur.py --base etat/oracle_state.db --sortie site/briefing_oracle.json --journal etat/oracle.log
+          python collecteur.py --base etat/oracle_state.db --sortie site/briefing_oracle.json --historique site/historique.json --journal etat/oracle.log
 
       - name: Point et mail
         # Un mail raté (secrets absents, Gmail indisponible) ne doit pas empêcher

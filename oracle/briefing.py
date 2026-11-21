@@ -64,6 +64,7 @@ def vers_json(m: Marche, aujourd_hui: date) -> dict:
         "volume_ratio": m.ratio_volume,
         # Les variations qui méritent d'être crues (volume suffisant pour 1 h et 6 h).
         "confirmed_moves": horizons_confirmes(m),
+        "sparkline_24h": m.courbe_24h,
         "end_date": m.fin,
         "days_left": m.jours_restants(aujourd_hui),
         "resolution_summary": resumer_regle(m.regle),

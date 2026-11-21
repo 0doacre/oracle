@@ -25,6 +25,7 @@ class Marche:
     delta_6h: float | None = None
     delta_24h: float | None = None
     ratio_volume: float | None = None   # volume 24 h ÷ sa médiane des jours précédents
+    courbe_24h: str = ""                # mini-courbe en caractères (oracle/courbes.py)
     alerte: dict | None = None
     score: float = 0.0
 

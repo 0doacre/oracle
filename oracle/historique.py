@@ -75,6 +75,12 @@ class Historique:
         mediane = statistics.median(volumes)
         return round(marche.volume_24h / mediane, 2) if mediane > 0 else None
 
+    def serie(self, source: str, market_id: str, depuis: int) -> list[tuple[int, float]]:
+        """(timestamp, prix du OUI) de chaque relevé depuis `depuis`, dans l'ordre."""
+        return list(self.base.execute(
+            "SELECT timestamp, yes_price FROM releves WHERE source = ? AND market_id = ? "
+            "AND timestamp >= ? ORDER BY timestamp", (source, market_id, depuis)))
+
     def annoter(self, marche: Marche, maintenant: int) -> None:
         """Remplit les trois variations et le ratio de volume du marché."""
         marche.delta_1h = self.variation(marche, maintenant, "1h")

@@ -12,7 +12,7 @@ from oracle.sources.manifold import Manifold
 from oracle.sources.polymarket import Polymarket
 
 MAINTENANT = datetime(2026, 11, 21, 8, 0, tzinfo=timezone.utc)
-CLES = {"id", "source", "category", "dossier", "confirmed_moves", "title", "yes_prob", "delta_1h", "delta_6h", "delta_24h",
+CLES = {"id", "source", "category", "dossier", "confirmed_moves", "sparkline_24h", "title", "yes_prob", "delta_1h", "delta_6h", "delta_24h",
         "volume_total", "volume_24h", "volume_ratio", "end_date", "days_left",
         "resolution_summary", "url", "score", "trade_alert"}
 

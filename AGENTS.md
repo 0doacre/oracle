@@ -38,9 +38,9 @@ le code (pas de DNS forcé, pas de `verify=False`) : sans ce réglage, la source
 simplement notée en panne. Ne jamais parier : l'oracle ne fait que lire.
 
 **Où en est le travail** : étape 1 (ce qui se joue aujourd'hui), dossiers et actualité
-faits. Suivantes : mini-courbes dans le mail et courbes 7 jours sur la page, météo
-(Strasbourg-Entzheim, lieu dans un secret GitHub), alertes en direct, puis mesure
-de la valeur des signaux une fois les marchés résolus.
+et graphiques faits (mini-courbe 24 h en caractères dans le mail, courbes 7 jours
+sur la page). Suivantes : météo (Strasbourg-Entzheim, lieu dans un secret GitHub),
+alertes en direct, puis mesure de la valeur des signaux une fois les marchés résolus.
 
 **Actualité** : flux RSS (médias français, éducation, BBC, Al Jazeera, Guardian) et
 GDELT. Titre, source, heure et lien seulement, jamais le texte (droits d'auteur).
@@ -80,13 +80,14 @@ réintroduire sans un contrôle qui vérifie le sens, pas seulement les mots.
 
 | Fichier ou dossier | Rôle |
 |---|---|
-| `collecteur.py` | Point d'entrée : un relevé → `briefing_oracle.json` + `oracle_state.db` |
+| `collecteur.py` | Point d'entrée : un relevé → `briefing_oracle.json` + `oracle_state.db` (+ `--historique` : courbes 7 jours) |
 | `point_matinal.py` | Point d'entrée : briefing → `points/AAAA-MM-JJ.md` |
 | `diffuser.py` | Point d'entrée GitHub : point dans `site/`, mail aux créneaux (`--forcer`) |
 | `.github/workflows/oracle.yml` | Relevé horaire, mail, cache de l'historique, GitHub Pages |
 | `dossiers.toml` | Dossiers suivis et bruit, modifiables par l'utilisateur |
 | `oracle/dossiers.py` | Lecture de `dossiers.toml`, attribution d'un marché ou d'un titre à un dossier |
 | `oracle/actualite.py` | Flux RSS/Atom et GDELT → titres par dossier (24 h, 3 au plus) |
+| `oracle/courbes.py` | Prix heure par heure, mini-courbe ▁▂▃▅▇ (amplitude minimale 5 pt) |
 | `oracle/point_matinal.py` | « Les 5 choses à savoir » (mail) et détail par dossier (page) |
 | `oracle/envoi.py` | Créneaux 7/12/19 h avec rattrapage, état des envois, Gmail (SMTP SSL) |
 | `oracle/rendu.py` | Markdown restreint du point → HTML échappé (mail et page) |
