@@ -184,7 +184,9 @@ def main(argv: list[str] | None = None, smtp_ssl=smtplib.SMTP_SSL, smtp_clair=sm
         journal(f"météo : indisponible ({erreur_meteo})")
 
     # Le mail : les 5 choses à savoir. La page : les 5 choses et le détail par dossier.
-    complet, remarques = composer(briefing, maintenant, actualites=actualites, meteo=texte_meteo)
+    # La page est publique : pas de météo, elle nommerait le lieu (vu le 21/11 : le
+    # secret ORACLE_METEO ressortait en clair sur point.html).
+    complet, remarques = composer(briefing, maintenant, actualites=actualites)
     court, _ = composer(briefing, maintenant, court=True, actualites=actualites, meteo=texte_meteo)
     for r in remarques:
         journal(f"envoi : {r}")

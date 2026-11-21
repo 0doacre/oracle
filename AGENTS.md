@@ -45,6 +45,7 @@ les marchés résolus.
 **Météo** : Open-Meteo, en tête du point (le jour même ; le lendemain à partir de
 17 h). Le lieu vient du secret GitHub `ORACLE_METEO` (« lat,lon,nom ») : il n'entre
 jamais dans le dépôt, ni dans le code, ni dans les tests, ni dans ce fichier.
+La météo ne va **que dans le mail** : la page est publique, elle nommerait le lieu.
 
 **Actualité** : flux RSS (médias français, éducation, BBC, Al Jazeera, Guardian) et
 GDELT. Titre, source, heure et lien seulement, jamais le texte (droits d'auteur).

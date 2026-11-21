@@ -147,6 +147,9 @@ def test_au_creneau_le_mail_part_une_seule_fois(dossier, monkeypatch):
     assert "&lt;X&gt;" in corps_html and "https://compte.github.io/oracle/point.html" in corps_html
     assert "Par dossier" not in corps_html                     # le mail est court
     assert "Météo à Ici" in corps_html
+    # La page publique ne nomme jamais le lieu de la météo.
+    for page in ("point.html", "point.md"):
+        assert "Météo" not in (dossier / "site" / page).read_text(encoding="utf-8")
     assert lancer(dossier, monkeypatch, utc(12, 1, 7)) == 0            # 8 h : déjà envoyé
     assert len(FauxSMTP.envoyes) == 1
 
