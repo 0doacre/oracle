@@ -191,3 +191,20 @@ def test_un_refus_d_authentification_n_essaie_pas_l_autre_port(dossier, monkeypa
 def test_les_espaces_du_mot_de_passe_d_application_sont_retires(dossier, monkeypatch):
     monkeypatch.setenv("ORACLE_SMTP_MOT_DE_PASSE", " b o n ")
     assert lancer(dossier, monkeypatch, HIVER) == 0
+
+
+def test_le_diagnostic_decrit_les_identifiants_sans_les_montrer():
+    texte = envoi.decrire_identifiants("moi@exemple.org", "abcdefghijklmnop")
+    assert "moi" not in texte and "abcd" not in texte
+    assert "15 caractères, avec « @ »" in texte and "16 lettres, attendu" in texte
+    texte = envoi.decrire_identifiants("moi​", "mot-de-passe-du-compte")
+    assert "1 non ASCII ou invisibles" in texte and "SANS « @ »" in texte
+    assert "pas 16 lettres" in texte
+
+
+def test_l_echec_journalise_le_diagnostic(dossier, monkeypatch):
+    FauxSMTP.coupe_au_login = {465, 587}
+    lancer(dossier, monkeypatch, HIVER)
+    journal = (dossier / "j.log").read_text(encoding="utf-8")
+    assert "utilisateur : 15 caractères, avec « @ »" in journal
+    assert "bon" not in journal.split("—")[-1].replace("non ASCII", "")

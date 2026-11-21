@@ -86,7 +86,7 @@ def envoyer(message: EmailMessage, utilisateur: str, mot_de_passe: str,
     ]
     erreurs = []
     for nom, ouvrir, starttls in essais:
-        etape = "connexion"
+        etape, serveur = "connexion", None
         try:
             with ouvrir() as serveur:
                 if starttls:
@@ -101,8 +101,25 @@ def envoyer(message: EmailMessage, utilisateur: str, mot_de_passe: str,
             raise EchecEnvoi(f"{nom} : authentification refusée ({e.smtp_code}). Vérifier "
                              "l'adresse et le mot de passe d'application Gmail.") from e
         except (smtplib.SMTPException, OSError) as e:
-            erreurs.append(f"{nom}, étape « {etape} » : {type(e).__name__}: {e}")
-    raise EchecEnvoi(" ; ".join(erreurs))
+            detail = f"{nom}, étape « {etape} » : {type(e).__name__}: {e}"
+            if etape == "authentification":
+                detail += f" [serveur : AUTH {getattr(serveur, 'esmtp_features', {}).get('auth', '?')}]"
+            erreurs.append(detail)
+    raise EchecEnvoi(" ; ".join(erreurs) + " — " + decrire_identifiants(utilisateur, mot_de_passe))
+
+
+def decrire_identifiants(utilisateur: str, mot_de_passe: str) -> str:
+    """La forme des identifiants, sans aucune de leurs valeurs : de quoi repérer une
+    faute de saisie dans un secret qu'on ne peut pas relire."""
+    def forme(texte: str) -> str:
+        etranges = sum(1 for c in texte if not c.isascii() or not c.isprintable())
+        return f"{len(texte)} caractères" + (f", dont {etranges} non ASCII ou invisibles"
+                                             if etranges else "")
+    adresse = "avec « @ »" if "@" in utilisateur else "SANS « @ »"
+    lettres = "16 lettres, attendu" if len(mot_de_passe) == 16 and mot_de_passe.isalpha() \
+        else "pas 16 lettres : un mot de passe d'application en a 16"
+    return (f"utilisateur : {forme(utilisateur)}, {adresse} ; "
+            f"mot de passe : {forme(mot_de_passe)} ({lettres})")
 
 
 def url_de_la_page() -> str:
