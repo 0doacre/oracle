@@ -38,9 +38,13 @@ le code (pas de DNS forcé, pas de `verify=False`) : sans ce réglage, la source
 simplement notée en panne. Ne jamais parier : l'oracle ne fait que lire.
 
 **Où en est le travail** : étape 1 (ce qui se joue aujourd'hui), dossiers et actualité
-et graphiques faits (mini-courbe 24 h en caractères dans le mail, courbes 7 jours
-sur la page). Suivantes : météo (Strasbourg-Entzheim, lieu dans un secret GitHub),
-alertes en direct, puis mesure de la valeur des signaux une fois les marchés résolus.
+graphiques (mini-courbe 24 h dans le mail, courbes 7 jours sur la page) et météo
+faits. Suivantes : alertes en direct, puis mesure de la valeur des signaux une fois
+les marchés résolus.
+
+**Météo** : Open-Meteo, en tête du point (le jour même ; le lendemain à partir de
+17 h). Le lieu vient du secret GitHub `ORACLE_METEO` (« lat,lon,nom ») : il n'entre
+jamais dans le dépôt, ni dans le code, ni dans les tests, ni dans ce fichier.
 
 **Actualité** : flux RSS (médias français, éducation, BBC, Al Jazeera, Guardian) et
 GDELT. Titre, source, heure et lien seulement, jamais le texte (droits d'auteur).
@@ -87,6 +91,7 @@ réintroduire sans un contrôle qui vérifie le sens, pas seulement les mots.
 | `dossiers.toml` | Dossiers suivis et bruit, modifiables par l'utilisateur |
 | `oracle/dossiers.py` | Lecture de `dossiers.toml`, attribution d'un marché ou d'un titre à un dossier |
 | `oracle/actualite.py` | Flux RSS/Atom et GDELT → titres par dossier (24 h, 3 au plus) |
+| `oracle/meteo.py` | Open-Meteo, lieu depuis `ORACLE_METEO`, phrase en français |
 | `oracle/courbes.py` | Prix heure par heure, mini-courbe ▁▂▃▅▇ (amplitude minimale 5 pt) |
 | `oracle/point_matinal.py` | « Les 5 choses à savoir » (mail) et détail par dossier (page) |
 | `oracle/envoi.py` | Créneaux 7/12/19 h avec rattrapage, état des envois, Gmail (SMTP SSL) |

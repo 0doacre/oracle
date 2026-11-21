@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from email.message import EmailMessage
 from pathlib import Path
 
-from oracle import actualite, rendu
+from oracle import actualite, meteo, rendu
 from oracle.dossiers import charger as charger_suivi
 from oracle.point_matinal import composer, dossiers_classes
 from oracle.temps import a_paris
@@ -149,7 +149,7 @@ def _actualite(briefing: dict, maintenant: datetime, collecter, journal) -> dict
 
 
 def main(argv: list[str] | None = None, smtp_ssl=smtplib.SMTP_SSL, smtp_clair=smtplib.SMTP,
-         collecter_actualite=None) -> int:
+         collecter_actualite=None, meteo_du_jour=None) -> int:
     from oracle.collecteur import Journal
 
     p = argparse.ArgumentParser(description="Écrit le point dans le site et l'envoie par mail au bon créneau.")
@@ -178,9 +178,14 @@ def main(argv: list[str] | None = None, smtp_ssl=smtplib.SMTP_SSL, smtp_clair=sm
                                 journal)
         actualite.ecrire(actualites, site / "actualites.json")
 
+    # Météo : seulement si le secret ORACLE_METEO donne le lieu (jamais dans le dépôt).
+    texte_meteo, erreur_meteo = (meteo_du_jour or meteo.du_jour)(maintenant)
+    if erreur_meteo:
+        journal(f"météo : indisponible ({erreur_meteo})")
+
     # Le mail : les 5 choses à savoir. La page : les 5 choses et le détail par dossier.
-    complet, remarques = composer(briefing, maintenant, actualites=actualites)
-    court, _ = composer(briefing, maintenant, court=True, actualites=actualites)
+    complet, remarques = composer(briefing, maintenant, actualites=actualites, meteo=texte_meteo)
+    court, _ = composer(briefing, maintenant, court=True, actualites=actualites, meteo=texte_meteo)
     for r in remarques:
         journal(f"envoi : {r}")
     url = url_de_la_page()

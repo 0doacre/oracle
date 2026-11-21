@@ -126,7 +126,8 @@ def lancer(dossier, monkeypatch, moment, *options):
                        "--etat", str(dossier / "etat" / "envois.json"),
                        "--journal", str(dossier / "j.log"), *options],
                       smtp_ssl=FauxSMTP, smtp_clair=FauxSMTP,
-                      collecter_actualite=fausse_actualite)
+                      collecter_actualite=fausse_actualite,
+                      meteo_du_jour=lambda m: ("**Météo à Ici, aujourd’hui** : pluie, 2 à 5 °C.", None))
 
 
 def fausse_actualite(suivi, maintenant, dossiers_gdelt):
@@ -145,6 +146,7 @@ def test_au_creneau_le_mail_part_une_seule_fois(dossier, monkeypatch):
     corps_html = mail.get_body(("html",)).get_content()
     assert "&lt;X&gt;" in corps_html and "https://compte.github.io/oracle/point.html" in corps_html
     assert "Par dossier" not in corps_html                     # le mail est court
+    assert "Météo à Ici" in corps_html
     assert lancer(dossier, monkeypatch, utc(12, 1, 7)) == 0            # 8 h : déjà envoyé
     assert len(FauxSMTP.envoyes) == 1
 

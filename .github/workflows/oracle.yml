@@ -66,6 +66,7 @@ jobs:
           ORACLE_SMTP_UTILISATEUR: ${{ secrets.ORACLE_SMTP_UTILISATEUR }}
           ORACLE_SMTP_MOT_DE_PASSE: ${{ secrets.ORACLE_SMTP_MOT_DE_PASSE }}
           ORACLE_DESTINATAIRE: ${{ secrets.ORACLE_DESTINATAIRE }}
+          ORACLE_METEO: ${{ secrets.ORACLE_METEO }}
           FORCER: ${{ github.event_name == 'workflow_dispatch' && inputs.envoyer && '--forcer' || '' }}
         run: |
           python diffuser.py --briefing site/briefing_oracle.json --site site --etat etat/envois.json --journal etat/oracle.log $FORCER

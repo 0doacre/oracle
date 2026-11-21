@@ -207,7 +207,7 @@ def _quand(jours: int) -> str:
 
 
 def composer(briefing: dict, maintenant: datetime, court: bool = False,
-             actualites: dict | None = None) -> tuple[str, list[str]]:
+             actualites: dict | None = None, meteo: str | None = None) -> tuple[str, list[str]]:
     """Le point en Markdown (court : le mail ; sinon : la page), et les remarques
     à journaliser. `actualites` : sortie de actualite.vers_json, facultative."""
     remarques = []
@@ -217,6 +217,8 @@ def composer(briefing: dict, maintenant: datetime, court: bool = False,
     if genere and (maintenant - genere).total_seconds() > BRIEFING_VIEUX_H * 3600:
         remarques.append(f"briefing vieux de plus de {BRIEFING_VIEUX_H} h ({genere:%d/%m %H:%M})")
         lignes += [f"> ⚠ Briefing ancien : relevé du {a_paris(genere):%d/%m/%Y à %H:%M}.", ""]
+    if meteo:
+        lignes += [meteo, ""]
     lignes.append(cinq_choses(briefing, actualites=actualites))
     suivi_seul = aussi_suivi(actualites)
     if suivi_seul:
