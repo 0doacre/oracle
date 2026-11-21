@@ -19,8 +19,9 @@ from datetime import datetime, timezone
 from email.message import EmailMessage
 from pathlib import Path
 
-from oracle import rendu
-from oracle.point_matinal import composer
+from oracle import actualite, rendu
+from oracle.dossiers import charger as charger_suivi
+from oracle.point_matinal import composer, dossiers_classes
 from oracle.temps import a_paris
 
 CRENEAUX_H = (7, 12, 19)
@@ -133,7 +134,22 @@ def url_de_la_page() -> str:
     return ""
 
 
-def main(argv: list[str] | None = None, smtp_ssl=smtplib.SMTP_SSL, smtp_clair=smtplib.SMTP) -> int:
+def _actualite(briefing: dict, maintenant: datetime, collecter, journal) -> dict:
+    """Les titres de presse par dossier. GDELT n'est interrogé que pour les 5 dossiers
+    du jour : il limite le débit (une requête toutes les 5 s). Une source en panne
+    n'empêche rien."""
+    suivi = charger_suivi()
+    du_jour = dossiers_classes(briefing)[:5]
+    par_dossier, erreurs = collecter(suivi, maintenant, du_jour)
+    for source, erreur in erreurs.items():
+        journal(f"actualité : {source} en panne ({erreur[:120]})")
+    total = sum(len(lot) for lot in par_dossier.values())
+    journal(f"actualité : {total} titres rattachés à {len(par_dossier)} dossiers")
+    return actualite.vers_json(par_dossier, erreurs, maintenant, suivi)
+
+
+def main(argv: list[str] | None = None, smtp_ssl=smtplib.SMTP_SSL, smtp_clair=smtplib.SMTP,
+         collecter_actualite=None) -> int:
     from oracle.collecteur import Journal
 
     p = argparse.ArgumentParser(description="Écrit le point dans le site et l'envoie par mail au bon créneau.")
@@ -142,6 +158,7 @@ def main(argv: list[str] | None = None, smtp_ssl=smtplib.SMTP_SSL, smtp_clair=sm
     p.add_argument("--etat", default="etat/envois.json")
     p.add_argument("--forcer", action="store_true", help="envoyer le mail quelle que soit l'heure")
     p.add_argument("--journal", default=None)
+    p.add_argument("--sans-actualite", action="store_true", help="ne pas lire les flux de presse")
     args = p.parse_args(argv)
     journal = Journal(args.journal)
 
@@ -153,9 +170,17 @@ def main(argv: list[str] | None = None, smtp_ssl=smtplib.SMTP_SSL, smtp_clair=sm
 
     maintenant = datetime.now(timezone.utc)
     local = a_paris(maintenant)
+    site = Path(args.site)
+    site.mkdir(parents=True, exist_ok=True)
+    actualites = None
+    if not args.sans_actualite:
+        actualites = _actualite(briefing, maintenant, collecter_actualite or actualite.collecter,
+                                journal)
+        actualite.ecrire(actualites, site / "actualites.json")
+
     # Le mail : les 5 choses à savoir. La page : les 5 choses et le détail par dossier.
-    complet, remarques = composer(briefing, maintenant)
-    court, _ = composer(briefing, maintenant, court=True)
+    complet, remarques = composer(briefing, maintenant, actualites=actualites)
+    court, _ = composer(briefing, maintenant, court=True, actualites=actualites)
     for r in remarques:
         journal(f"envoi : {r}")
     url = url_de_la_page()
@@ -165,8 +190,6 @@ def main(argv: list[str] | None = None, smtp_ssl=smtplib.SMTP_SSL, smtp_clair=sm
                  f'<a href="{url}">le tableau de bord</a></p>' if url else "")
     mail_html = rendu.page(court, titre, pied_mail)
 
-    site = Path(args.site)
-    site.mkdir(parents=True, exist_ok=True)
     (site / "point.md").write_text(complet, encoding="utf-8")
     (site / "point.html").write_text(rendu.page(complet, titre, pied_page), encoding="utf-8")
 

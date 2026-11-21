@@ -125,7 +125,16 @@ def lancer(dossier, monkeypatch, moment, *options):
     return envoi.main(["--briefing", str(dossier / "b.json"), "--site", str(dossier / "site"),
                        "--etat", str(dossier / "etat" / "envois.json"),
                        "--journal", str(dossier / "j.log"), *options],
-                      smtp_ssl=FauxSMTP, smtp_clair=FauxSMTP)
+                      smtp_ssl=FauxSMTP, smtp_clair=FauxSMTP,
+                      collecter_actualite=fausse_actualite)
+
+
+def fausse_actualite(suivi, maintenant, dossiers_gdelt):
+    from oracle.actualite import Depeche
+    return ({"Trump et Washington": [Depeche("Le Sénat bloque <un> candidat", "franceinfo",
+                                             "https://exemple.org/a?x=1&y=2",
+                                             "2026-12-01T05:30+00:00")]},
+            {"RFI": "503"})
 
 
 def test_au_creneau_le_mail_part_une_seule_fois(dossier, monkeypatch):

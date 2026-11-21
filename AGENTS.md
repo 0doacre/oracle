@@ -15,8 +15,10 @@ Deux étages, sans LLM ni coût :
    gardent un historique en SQLite et exportent un JSON de moins de 25 Ko.
 2. **Point** : des phrases modèles. Le mail donne « Les 5 choses à savoir » : une
    ligne par **dossier suivi** (`dossiers.toml`, que l'utilisateur modifie), les plus
-   importants d'abord (gros ordre, mouvement confirmé, échéance proche). La page
-   ajoute le détail par dossier. Intitulés de marchés en anglais ; aucun LLM.
+   importants d'abord (gros ordre, mouvement confirmé, échéance proche), chacun
+   avec ses deux titres de presse les plus récents, puis « Aussi suivi » (dossiers
+   d'actualité seule : Éducation nationale, Administration). La page ajoute le
+   détail par dossier. Intitulés de marchés en anglais ; aucun LLM.
 
 Deux façons de le faire tourner :
 - **GitHub Actions** (`.github/workflows/oracle.yml`) : un relevé chaque heure, le
@@ -35,9 +37,15 @@ DNS-over-HTTPS), réglé à la main dans Windows. Ne **jamais** contourner le bl
 le code (pas de DNS forcé, pas de `verify=False`) : sans ce réglage, la source est
 simplement notée en panne. Ne jamais parier : l'oracle ne fait que lire.
 
-**Où en est le travail** : étape 1 (ce qui se joue aujourd'hui) et dossiers faits. Suivantes :
-alertes en direct, actualité pour dire « pourquoi ça bouge », puis mesure de la
-valeur des signaux une fois les marchés résolus.
+**Où en est le travail** : étape 1 (ce qui se joue aujourd'hui), dossiers et actualité
+faits. Suivantes : mini-courbes dans le mail et courbes 7 jours sur la page, météo
+(Strasbourg-Entzheim, lieu dans un secret GitHub), alertes en direct, puis mesure
+de la valeur des signaux une fois les marchés résolus.
+
+**Actualité** : flux RSS (médias français, éducation, BBC, Al Jazeera, Guardian) et
+GDELT. Titre, source, heure et lien seulement, jamais le texte (droits d'auteur).
+GDELT répond souvent 429 : il complète, on n'en dépend jamais. AEF info et La Lettre A
+sont payants et sans flux libre ; education.gouv.fr refuse les robots (403).
 
 **Pourquoi pas de LLM dans le point** : trois essais avec Ministral 8B (Ollama, local)
 le 21/11/2026. Il a inversé le côté d'un pari, fait « succéder Schumer à Schumer » et
@@ -77,7 +85,8 @@ réintroduire sans un contrôle qui vérifie le sens, pas seulement les mots.
 | `diffuser.py` | Point d'entrée GitHub : point dans `site/`, mail aux créneaux (`--forcer`) |
 | `.github/workflows/oracle.yml` | Relevé horaire, mail, cache de l'historique, GitHub Pages |
 | `dossiers.toml` | Dossiers suivis et bruit, modifiables par l'utilisateur |
-| `oracle/dossiers.py` | Lecture de `dossiers.toml`, attribution d'un marché à un dossier |
+| `oracle/dossiers.py` | Lecture de `dossiers.toml`, attribution d'un marché ou d'un titre à un dossier |
+| `oracle/actualite.py` | Flux RSS/Atom et GDELT → titres par dossier (24 h, 3 au plus) |
 | `oracle/point_matinal.py` | « Les 5 choses à savoir » (mail) et détail par dossier (page) |
 | `oracle/envoi.py` | Créneaux 7/12/19 h avec rattrapage, état des envois, Gmail (SMTP SSL) |
 | `oracle/rendu.py` | Markdown restreint du point → HTML échappé (mail et page) |

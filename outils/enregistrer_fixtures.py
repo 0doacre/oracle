@@ -139,8 +139,23 @@ def polymarket() -> None:
         ecrire("polymarket_activity.json", activite)
 
 
+def actualite() -> None:
+    from oracle.actualite import GDELT
+    from oracle.http import get_octets
+
+    for nom, url in [("rss_lemonde_international.xml", "https://www.lemonde.fr/international/rss_full.xml"),
+                     ("rss_cafepedagogique.xml", "https://www.cafepedagogique.net/feed/")]:
+        chemin = FIXTURES / nom
+        chemin.write_bytes(get_octets(url))
+        print(f"{nom} : {chemin.stat().st_size // 1024} Ko")
+    ecrire("gdelt_iran.json", get_json(GDELT, {"query": "(iran OR tehran OR khamenei)",
+                                               "mode": "artlist", "format": "json",
+                                               "maxrecords": 15, "timespan": "24h",
+                                               "sort": "datedesc"}))
+
+
 if __name__ == "__main__":
     FIXTURES.mkdir(parents=True, exist_ok=True)
-    quoi = sys.argv[1:] or ["kalshi", "manifold", "polymarket"]
+    quoi = sys.argv[1:] or ["kalshi", "manifold", "polymarket", "actualite"]
     for nom in quoi:
         globals()[nom]()

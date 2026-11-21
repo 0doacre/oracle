@@ -30,6 +30,8 @@ SEUILS_MOUVEMENT = {"delta_1h": 2.0, "delta_6h": 3.0, "delta_24h": 4.0}
 LIBELLES_HORIZON = {"delta_1h": "1 h", "delta_6h": "6 h", "delta_24h": "24 h"}
 PIC_VOLUME = 3.0
 ECHEANCE_IMMINENTE_J = 2
+NB_TITRES_MAIL = 2
+NB_TITRES_PAGE = 3
 # Ce qui rend un dossier important aujourd'hui, en plus du score de son marché phare.
 BONUS = {"alerte": 20, "mouvement": 15, "echeance": 15}
 
@@ -99,8 +101,28 @@ def _par_dossier(marches: list[dict]) -> dict[str, list[dict]]:
     return groupes
 
 
-def cinq_choses(briefing: dict, n: int = NB_CHOSES) -> str:
-    """Une ligne par dossier, pour les n dossiers les plus importants aujourd'hui."""
+def dossiers_classes(briefing: dict) -> list[str]:
+    """Les dossiers de marchés, du plus important au moins important aujourd'hui."""
+    groupes = _par_dossier(briefing["markets"])
+    return sorted(groupes, key=lambda nom: _importance(groupes[nom][0]), reverse=True)
+
+
+def _titres(actualites: dict | None, nom: str, n: int) -> list[str]:
+    """Les n titres de presse les plus récents du dossier, en puces avec lien."""
+    lot = ((actualites or {}).get("dossiers") or {}).get(nom, [])[:n]
+    return [f"- [{d['title']}]({d['url']}) — {d['source']}, {_heure(d['published'])}" for d in lot]
+
+
+def _heure(iso: str) -> str:
+    try:
+        return f"{a_paris(datetime.fromisoformat(iso)):%Hh%M}"
+    except ValueError:
+        return ""
+
+
+def cinq_choses(briefing: dict, n: int = NB_CHOSES, actualites: dict | None = None) -> str:
+    """Une ligne par dossier, pour les n dossiers les plus importants aujourd'hui,
+    avec ses deux titres de presse les plus récents."""
     lignes = ["## Les 5 choses à savoir", ""]
     erreurs = briefing["meta"].get("errors") or {}
     groupes = _par_dossier(briefing["markets"])
@@ -109,6 +131,9 @@ def cinq_choses(briefing: dict, n: int = NB_CHOSES) -> str:
         reste = len(lot) - 1
         suite = f" *(+ {reste} autre{'s' if reste > 1 else ''} sur la page)*" if reste else ""
         lignes.append(f"{rang}. **{nom}** — {_phrase(lot[0])}{suite}")
+        titres = _titres(actualites, nom, NB_TITRES_MAIL)
+        if titres:
+            lignes += titres + [""]
     if not classes:
         lignes.append("Aucun dossier suivi n'a de marché actif dans ce relevé.")
     if erreurs:
@@ -116,15 +141,30 @@ def cinq_choses(briefing: dict, n: int = NB_CHOSES) -> str:
     return "\n".join(lignes)
 
 
+def aussi_suivi(actualites: dict | None) -> str:
+    """Les dossiers d'actualité seule (aucun marché n'en parle), avec leurs titres."""
+    noms = (actualites or {}).get("news_only") or []
+    if not noms:
+        return ""
+    lignes = ["## Aussi suivi"]
+    for nom in noms:
+        titres = _titres(actualites, nom, NB_TITRES_PAGE)
+        lignes += ["", f"**{nom}**", ""] + (titres or ["Rien de neuf dans les flux suivis."])
+    return "\n".join(lignes)
+
+
 # ---------- Le détail (page) ----------
 
-def detail(briefing: dict) -> str:
-    """Chaque dossier avec tous ses marchés, puis les marchés hors dossier."""
+def detail(briefing: dict, actualites: dict | None = None) -> str:
+    """Chaque dossier avec tous ses marchés et ses titres, puis les marchés hors dossier."""
     lignes = ["## Par dossier"]
     groupes = _par_dossier(briefing["markets"])
     for nom, lot in sorted(groupes.items(), key=lambda g: _importance(g[1][0]), reverse=True):
         lignes += ["", f"### {nom}", ""]
         lignes += ["- " + _ligne(m) for m in lot]
+        titres = _titres(actualites, nom, NB_TITRES_PAGE)
+        if titres:
+            lignes += ["", "*Dans l'actualité :*", ""] + titres
     hors = sorted((m for m in briefing["markets"] if not m.get("dossier")),
                   key=_importance, reverse=True)
     if hors:
@@ -164,9 +204,10 @@ def _quand(jours: int) -> str:
     return {0: "Aujourd'hui", 1: "Demain"}.get(jours, f"Dans {jours} jours")
 
 
-def composer(briefing: dict, maintenant: datetime, court: bool = False) -> tuple[str, list[str]]:
+def composer(briefing: dict, maintenant: datetime, court: bool = False,
+             actualites: dict | None = None) -> tuple[str, list[str]]:
     """Le point en Markdown (court : le mail ; sinon : la page), et les remarques
-    à journaliser."""
+    à journaliser. `actualites` : sortie de actualite.vers_json, facultative."""
     remarques = []
     lignes = [f"# Oracle — {a_paris(maintenant):%d/%m/%Y à %Hh%M}", ""]
     meta = briefing["meta"]
@@ -174,9 +215,12 @@ def composer(briefing: dict, maintenant: datetime, court: bool = False) -> tuple
     if genere and (maintenant - genere).total_seconds() > BRIEFING_VIEUX_H * 3600:
         remarques.append(f"briefing vieux de plus de {BRIEFING_VIEUX_H} h ({genere:%d/%m %H:%M})")
         lignes += [f"> ⚠ Briefing ancien : relevé du {a_paris(genere):%d/%m/%Y à %H:%M}.", ""]
-    lignes.append(cinq_choses(briefing))
+    lignes.append(cinq_choses(briefing, actualites=actualites))
+    suivi_seul = aussi_suivi(actualites)
+    if suivi_seul:
+        lignes += ["", suivi_seul]
     if not court:
-        lignes += ["", detail(briefing)]
+        lignes += ["", detail(briefing, actualites)]
     lignes += ["", "---", "",
                f"*{len(briefing['markets'])} marchés retenus sur {meta.get('total_scanned', 0)} "
                f"lus. Chaque pourcentage est le prix du OUI sur un marché de prédiction : ni un "

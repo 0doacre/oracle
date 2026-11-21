@@ -23,7 +23,10 @@ hr{border:0;border-top:1px solid #e3e1da;margin:18px 0}a{color:#2f5d8a}
 
 
 def _en_ligne(texte: str) -> str:
-    texte = html.escape(texte, quote=False)
+    # Les guillemets doubles sont échappés (ils fermeraient un href) ; l'apostrophe, non.
+    texte = html.escape(texte, quote=False).replace('"', "&quot;")
+    # Liens [texte](https://…) : seulement http(s), jamais javascript: ni autre schéma.
+    texte = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", r'<a href="\2">\1</a>', texte)
     texte = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", texte)
     return re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", texte)
 

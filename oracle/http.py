@@ -1,4 +1,4 @@
-"""Lecture d'API JSON publiques : délai, reprises légères, respect des limites de débit."""
+"""Lecture d'API et de flux publics : délai, reprises légères, respect des limites de débit."""
 
 import gzip
 import json
@@ -8,7 +8,7 @@ import urllib.parse
 import urllib.request
 
 # gzip : Polymarket l'exige au-delà de 50 événements par page (sinon 406).
-ENTETES = {"User-Agent": "oracle/0.1", "Accept": "application/json", "Accept-Encoding": "gzip"}
+ENTETES = {"User-Agent": "oracle/0.1 (lecteur personnel)", "Accept-Encoding": "gzip"}
 REPRISES = 3
 DELAI_S = 20
 
@@ -24,25 +24,32 @@ def _corps(reponse) -> bytes:
     return brut
 
 
-def get_json(url: str, params: dict | None = None, *, pause=time.sleep):
-    """GET qui renvoie le JSON décodé. Reprend sur 429, 5xx et coupure réseau."""
+def get_octets(url: str, params: dict | None = None, *, accepte: str = "*/*",
+               pause=time.sleep, decoder=lambda b: b):
+    """GET qui renvoie le corps (décodé par `decoder`). Reprend sur 429, 5xx,
+    coupure réseau, et sur un corps que `decoder` refuse."""
     if params:
         url = f"{url}?{urllib.parse.urlencode(params)}"
     derniere = None
     for essai in range(REPRISES):
         try:
-            requete = urllib.request.Request(url, headers=ENTETES)
+            requete = urllib.request.Request(url, headers={**ENTETES, "Accept": accepte})
             with urllib.request.urlopen(requete, timeout=DELAI_S) as reponse:
-                return json.loads(_corps(reponse))
+                return decoder(_corps(reponse))
         except urllib.error.HTTPError as e:
             derniere = e
             if e.code != 429 and e.code < 500:
                 detail = _corps(e).decode("utf-8", "replace")[:300]
                 raise ErreurReseau(f"{e.code} sur {url} : {detail}") from e
             attente = float(e.headers.get("Retry-After") or 2 ** (essai + 1))
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as e:
-            derniere = e
+        except (urllib.error.URLError, TimeoutError, ValueError, OSError) as e:
+            derniere = e                      # ValueError : JSON ou XML illisible
             attente = 2 ** (essai + 1)
         if essai < REPRISES - 1:
             pause(min(attente, 30))
     raise ErreurReseau(f"échec après {REPRISES} essais sur {url} : {derniere}")
+
+
+def get_json(url: str, params: dict | None = None, *, pause=time.sleep):
+    """GET qui renvoie le JSON décodé."""
+    return get_octets(url, params, accepte="application/json", pause=pause, decoder=json.loads)

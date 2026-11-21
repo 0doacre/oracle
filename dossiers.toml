@@ -1,67 +1,129 @@
 # Les sujets que l'oracle suit pour toi. Modifie librement ce fichier :
 #   - ajoute ou retire un [[dossier]] ;
-#   - « mots » : expressions cherchées dans l'intitulé (anglais) des marchés,
-#     sans tenir compte des majuscules, en mots entiers. \w* = « et la suite du mot ».
-#   - un marché qui touche plusieurs dossiers va à celui qui a le plus de mots
-#     trouvés ; à égalité, au premier de la liste.
-# Le mail donne les 5 dossiers qui bougent ou se décident le plus.
+#   - « mots » : expressions cherchées dans l'intitulé (anglais) des marchés ;
+#   - « mots_fr » : expressions cherchées dans les titres de presse français
+#     (les « mots » servent aussi pour les titres en anglais) ;
+#   - « gdelt » : la recherche envoyée à GDELT (actualité mondiale), facultative ;
+#   - un dossier sans « mots » ne suit que l'actualité (aucun marché n'en parle).
+# Les majuscules ne comptent pas, les accents si ; mots entiers ;
+# \w* = « et la suite du mot ». À égalité entre deux dossiers, le premier gagne.
+# Le mail donne les 5 dossiers de marchés les plus importants, puis les dossiers
+# d'actualité seule.
 
 [bruit]
-# Marchés jamais retenus, même s'ils touchent un dossier : paris sur des
-# comptages de messages, défis mathématiques, distinctions médiatiques.
+# Marchés jamais retenus, même s'ils touchent un dossier.
 mots = [
   "truth social", "tweets?", "posts?", "mentions?",
   "millennium prize", "riemann", "hodge", "navier", "yang[- ]mills", "p vs\\.? np",
   "person of the (year|decade)",
 ]
 
+[actualite]
+# Flux RSS lus à chaque relevé (titres et liens seulement, jamais le texte).
+flux = [
+  { nom = "franceinfo", url = "https://www.francetvinfo.fr/titres.rss" },
+  { nom = "France 24", url = "https://www.france24.com/fr/rss" },
+  { nom = "RFI", url = "https://www.rfi.fr/fr/rss" },
+  { nom = "Le Monde", url = "https://www.lemonde.fr/rss/une.xml" },
+  { nom = "Le Monde International", url = "https://www.lemonde.fr/international/rss_full.xml" },
+  { nom = "Le Monde Éducation", url = "https://www.lemonde.fr/education/rss_full.xml" },
+  { nom = "franceinfo Éducation", url = "https://www.francetvinfo.fr/societe/education.rss" },
+  { nom = "Café pédagogique", url = "https://www.cafepedagogique.net/feed/" },
+  { nom = "VousNousIls", url = "https://www.vousnousils.fr/feed" },
+  # International, en anglais : la plupart des marchés portent sur les États-Unis et le
+  # Moyen-Orient. GDELT (plus large) bloque souvent les requêtes automatiques (429).
+  { nom = "BBC World", url = "https://feeds.bbci.co.uk/news/world/rss.xml" },
+  { nom = "BBC Business", url = "https://feeds.bbci.co.uk/news/business/rss.xml" },
+  { nom = "Al Jazeera", url = "https://www.aljazeera.com/xml/rss/all.xml" },
+  { nom = "The Guardian World", url = "https://www.theguardian.com/world/rss" },
+  { nom = "The Guardian US", url = "https://www.theguardian.com/us-news/rss" },
+]
+
 [[dossier]]
 nom = "Iran"
 mots = ["iran\\w*", "tehran", "khamenei", "hormuz", "irgc"]
+mots_fr = ["iran\\w*", "téhéran", "khamenei", "ormuz"]
+gdelt = "(iran OR tehran OR khamenei)"
 
 [[dossier]]
 nom = "Ukraine – Russie"
 mots = ["ukrain\\w*", "russia\\w*", "putin", "zelensk\\w*", "kremlin", "crimea", "donbas", "kyiv"]
+mots_fr = ["ukrain\\w*", "russ\\w*", "poutine", "zelensky", "kremlin", "crimée", "donbass", "kiev"]
+gdelt = "(ukraine OR putin OR zelensky OR kremlin)"
 
 [[dossier]]
 nom = "Chine – Taïwan"
 mots = ["taiwan\\w*", "china", "chinese", "xi jinping", "beijing", "kuomintang", "kmt", "dpp"]
+mots_fr = ["taïwan\\w*", "chine", "chinois\\w*", "xi jinping", "pékin"]
+gdelt = "(taiwan OR \"xi jinping\")"
 
 [[dossier]]
 nom = "Israël – Gaza – Liban"
 mots = ["israel\\w*", "gaza", "hamas", "hezbollah", "lebanon", "netanyahu", "west bank"]
+mots_fr = ["israël\\w*", "israéli\\w*", "gaza", "hamas", "hezbollah", "liban\\w*", "netanyahou",
+           "cisjordanie"]
+gdelt = "(gaza OR netanyahu OR hezbollah)"
 
 [[dossier]]
 nom = "Présidentielle 2027"
 mots = ["french presidential", "france presidential", "le pen", "bardella", "philippe",
         "lisnard", "m[ée]lenchon", "retailleau", "attal", "macron"]
+mots_fr = ["présidentielle", "le pen", "bardella", "édouard philippe", "lisnard", "mélenchon",
+           "retailleau", "attal", "villepin"]
+gdelt = "(\"le pen\" OR bardella OR \"french presidential\")"
 
 [[dossier]]
 nom = "Droites radicales Europe"
 mots = ["afd", "reform uk", "farage", "orb[aá]n", "fidesz", "meloni", "wilders",
         "far[- ]right", "chega", "fp[öo]"]
+mots_fr = ["afd", "farage", "orban", "meloni", "wilders", "extrême droite", "rassemblement national"]
+gdelt = "(\"far-right\" OR afd OR farage OR orban)"
 
 [[dossier]]
 nom = "Trump et Washington"
 mots = ["trump", "impeach\\w*", "congress", "senate", "supreme court", "scotus",
         "white house", "executive order", "shutdown", "speaker of the house"]
+mots_fr = ["trump", "maison[- ]blanche", "congrès américain", "cour suprême", "destitution",
+           "shutdown"]
 
 [[dossier]]
 nom = "Élections US 2028"
 mots = ["2028 (us )?presidential", "presidential nomin\\w*", "presidential nominee",
         "next presidential election", "vance", "rubio", "newsom", "ossoff", "shapiro",
         "buttigieg", "ocasio-cortez", "aoc"]
+mots_fr = ["présidentielle américaine", "vance", "rubio", "newsom"]
 
 [[dossier]]
 nom = "Pétrole et énergie"
 mots = ["oil", "crude", "wti", "brent", "opec", "natural gas", "gasoline", "energy"]
+mots_fr = ["pétrole", "opep", "gaz", "énergie", "carburants?", "électricité"]
+gdelt = "(\"oil price\" OR opec OR brent)"
 
 [[dossier]]
 nom = "Bulle IA et labos"
 mots = ["ai bubble", "openai", "anthropic", "nvidia", "chatgpt", "gpt-?\\d\\w*", "gemini",
         "xai", "agi", "artificial intelligence", "best ai", "ai model"]
+mots_fr = ["intelligence artificielle", "ia", "openai", "anthropic", "nvidia", "chatgpt"]
+gdelt = "(\"ai bubble\" OR openai OR nvidia OR anthropic)"
 
 [[dossier]]
 nom = "Récession et marchés"
 mots = ["recession", "s&p( 500)?", "nasdaq", "dow jones", "stock market", "unemployment",
         "gdp", "crash"]
+mots_fr = ["récession", "bourse", "cac 40", "wall street", "chômage", "croissance", "krach",
+           "inflation"]
+
+[[dossier]]
+nom = "Éducation nationale"
+# Actualité seule : aucun marché de prédiction sur ce sujet.
+mots_fr = ["éducation nationale", "ministre de l'éducation", "école", "écoles", "collège\\w*",
+           "lycée\\w*", "enseignant\\w*", "professeur\\w*", "élèves?", "bac", "baccalauréat",
+           "brevet", "rectorat", "recteur", "académie", "programmes scolaires", "rentrée",
+           "parcoursup", "inspection académique"]
+
+[[dossier]]
+nom = "Administration et fonction publique"
+# Actualité seule.
+mots_fr = ["fonction publique", "fonctionnaires?", "agents publics", "administration",
+           "service public", "décret", "circulaire", "journal officiel", "préfet\\w*",
+           "ministère", "réforme de l'état", "budget de l'état", "projet de loi de finances"]
