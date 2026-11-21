@@ -63,11 +63,46 @@ def construire_mail(sujet: str, texte: str, page_html: str, expediteur: str,
     return message
 
 
+class EchecEnvoi(Exception):
+    """Le mail n'est pas parti ; le message dit par quel port et à quelle étape."""
+
+
 def envoyer(message: EmailMessage, utilisateur: str, mot_de_passe: str,
-            hote: str = "smtp.gmail.com", port: int = 465, smtp=smtplib.SMTP_SSL) -> None:
-    with smtp(hote, port, context=ssl.create_default_context(), timeout=60) as serveur:
-        serveur.login(utilisateur, mot_de_passe)
-        serveur.send_message(message)
+            hote: str = "smtp.gmail.com", smtp_ssl=smtplib.SMTP_SSL,
+            smtp_clair=smtplib.SMTP) -> str:
+    """Envoie par SSL (465), puis par STARTTLS (587) si le premier coupe.
+    Renvoie le mode qui a marché. Un refus d'authentification n'est pas retenté :
+    l'autre port le refuserait aussi.
+
+    Vu au premier essai réel depuis GitHub : « SMTPServerDisconnected: Connection
+    unexpectedly closed » sur le 465, sans dire à quelle étape."""
+    contexte = ssl.create_default_context()
+    # Google affiche le mot de passe d'application en quatre groupes : les espaces
+    # n'en font pas partie.
+    utilisateur, mot_de_passe = utilisateur.strip(), mot_de_passe.replace(" ", "").strip()
+    essais = [
+        ("SSL 465", lambda: smtp_ssl(hote, 465, context=contexte, timeout=60), False),
+        ("STARTTLS 587", lambda: smtp_clair(hote, 587, timeout=60), True),
+    ]
+    erreurs = []
+    for nom, ouvrir, starttls in essais:
+        etape = "connexion"
+        try:
+            with ouvrir() as serveur:
+                if starttls:
+                    etape = "chiffrement"
+                    serveur.starttls(context=contexte)
+                etape = "authentification"
+                serveur.login(utilisateur, mot_de_passe)
+                etape = "envoi"
+                serveur.send_message(message)
+            return nom
+        except smtplib.SMTPAuthenticationError as e:
+            raise EchecEnvoi(f"{nom} : authentification refusée ({e.smtp_code}). Vérifier "
+                             "l'adresse et le mot de passe d'application Gmail.") from e
+        except (smtplib.SMTPException, OSError) as e:
+            erreurs.append(f"{nom}, étape « {etape} » : {type(e).__name__}: {e}")
+    raise EchecEnvoi(" ; ".join(erreurs))
 
 
 def url_de_la_page() -> str:
@@ -81,7 +116,7 @@ def url_de_la_page() -> str:
     return ""
 
 
-def main(argv: list[str] | None = None, smtp=smtplib.SMTP_SSL) -> int:
+def main(argv: list[str] | None = None, smtp_ssl=smtplib.SMTP_SSL, smtp_clair=smtplib.SMTP) -> int:
     from oracle.collecteur import Journal
 
     p = argparse.ArgumentParser(description="Écrit le point dans le site et l'envoie par mail au bon créneau.")
@@ -126,15 +161,16 @@ def main(argv: list[str] | None = None, smtp=smtplib.SMTP_SSL) -> int:
         journal("envoi : mail non envoyé, secrets absents : " + ", ".join(manquantes))
         return 1
     message = construire_mail(titre, texte + (f"\n\nTableau de bord : {url}\n" if url else ""),
-                              page_html, os.environ["ORACLE_SMTP_UTILISATEUR"],
-                              os.environ["ORACLE_DESTINATAIRE"])
+                              page_html, os.environ["ORACLE_SMTP_UTILISATEUR"].strip(),
+                              os.environ["ORACLE_DESTINATAIRE"].strip())
     try:
-        envoyer(message, os.environ["ORACLE_SMTP_UTILISATEUR"],
-                os.environ["ORACLE_SMTP_MOT_DE_PASSE"], smtp=smtp)
-    except (smtplib.SMTPException, OSError) as e:
-        # Le message d'erreur SMTP ne contient pas le mot de passe.
-        journal(f"envoi : échec du mail ({type(e).__name__}: {e})")
+        mode = envoyer(message, os.environ["ORACLE_SMTP_UTILISATEUR"],
+                       os.environ["ORACLE_SMTP_MOT_DE_PASSE"],
+                       smtp_ssl=smtp_ssl, smtp_clair=smtp_clair)
+    except EchecEnvoi as e:
+        # Les erreurs SMTP ne contiennent pas le mot de passe.
+        journal(f"envoi : échec du mail ({e})")
         return 1
     noter_envoi(etat, deja, cle)
-    journal(f"envoi : mail du créneau {cle} envoyé")
+    journal(f"envoi : mail du créneau {cle} envoyé ({mode})")
     return 0

@@ -72,9 +72,15 @@ def test_l_etoile_d_un_calcul_n_ouvre_pas_d_italique():
 
 class FauxSMTP:
     envoyes: list = []
+    connexions: list = []
+    coupe_au_login: set = set()     # ports où le serveur coupe pendant l'authentification
 
-    def __init__(self, hote, port, context, timeout):
+    def __init__(self, hote, port, context=None, timeout=None):
         self.hote, self.port = hote, port
+        FauxSMTP.connexions.append(port)
+
+    def starttls(self, context):
+        self.chiffre = True
 
     def __enter__(self):
         return self
@@ -83,6 +89,11 @@ class FauxSMTP:
         return False
 
     def login(self, utilisateur, mot_de_passe):
+        import smtplib
+        if self.port in FauxSMTP.coupe_au_login:
+            raise smtplib.SMTPServerDisconnected("Connection unexpectedly closed")
+        if self.port == 587 and not getattr(self, "chiffre", False):
+            raise AssertionError("login en clair sur le 587")
         if mot_de_passe != "bon":
             import smtplib
             raise smtplib.SMTPAuthenticationError(535, b"Username and Password not accepted")
@@ -104,7 +115,7 @@ def dossier(tmp_path, monkeypatch):
                    ("ORACLE_DESTINATAIRE", "moi@exemple.org"), ("GITHUB_REPOSITORY", "Compte/oracle")]:
         monkeypatch.setenv(v, val)
     monkeypatch.delenv("ORACLE_URL_PAGE", raising=False)
-    FauxSMTP.envoyes = []
+    FauxSMTP.envoyes, FauxSMTP.connexions, FauxSMTP.coupe_au_login = [], [], set()
     return tmp_path
 
 
@@ -112,7 +123,8 @@ def lancer(dossier, monkeypatch, moment, *options):
     monkeypatch.setattr(envoi, "datetime", type("D", (), {"now": staticmethod(lambda tz=None: moment)}))
     return envoi.main(["--briefing", str(dossier / "b.json"), "--site", str(dossier / "site"),
                        "--etat", str(dossier / "etat" / "envois.json"),
-                       "--journal", str(dossier / "j.log"), *options], smtp=FauxSMTP)
+                       "--journal", str(dossier / "j.log"), *options],
+                      smtp_ssl=FauxSMTP, smtp_clair=FauxSMTP)
 
 
 def test_au_creneau_le_mail_part_une_seule_fois(dossier, monkeypatch):
@@ -149,5 +161,33 @@ def test_un_echec_smtp_est_journalise_sans_le_mot_de_passe(dossier, monkeypatch)
     monkeypatch.setenv("ORACLE_SMTP_MOT_DE_PASSE", "mauvais-secret")
     assert lancer(dossier, monkeypatch, HIVER) == 1
     journal = (dossier / "j.log").read_text(encoding="utf-8")
-    assert "SMTPAuthenticationError" in journal and "mauvais-secret" not in journal
+    assert "authentification refusée" in journal and "mauvais-secret" not in journal
     assert not (dossier / "etat" / "envois.json").exists()
+
+
+def test_si_le_465_coupe_le_587_prend_le_relais(dossier, monkeypatch):
+    # Cas réel du premier essai depuis GitHub.
+    FauxSMTP.coupe_au_login = {465}
+    assert lancer(dossier, monkeypatch, HIVER) == 0
+    assert FauxSMTP.connexions == [465, 587] and len(FauxSMTP.envoyes) == 1
+    assert "envoyé (STARTTLS 587)" in (dossier / "j.log").read_text(encoding="utf-8")
+
+
+def test_si_les_deux_ports_coupent_le_journal_dit_ou(dossier, monkeypatch):
+    FauxSMTP.coupe_au_login = {465, 587}
+    assert lancer(dossier, monkeypatch, HIVER) == 1
+    journal = (dossier / "j.log").read_text(encoding="utf-8")
+    assert "SSL 465, étape « authentification »" in journal
+    assert "STARTTLS 587, étape « authentification »" in journal
+
+
+def test_un_refus_d_authentification_n_essaie_pas_l_autre_port(dossier, monkeypatch):
+    monkeypatch.setenv("ORACLE_SMTP_MOT_DE_PASSE", "mauvais")
+    assert lancer(dossier, monkeypatch, HIVER) == 1
+    assert FauxSMTP.connexions == [465]
+    assert "authentification refusée (535)" in (dossier / "j.log").read_text(encoding="utf-8")
+
+
+def test_les_espaces_du_mot_de_passe_d_application_sont_retires(dossier, monkeypatch):
+    monkeypatch.setenv("ORACLE_SMTP_MOT_DE_PASSE", " b o n ")
+    assert lancer(dossier, monkeypatch, HIVER) == 0
