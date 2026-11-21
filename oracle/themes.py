@@ -26,7 +26,9 @@ CATEGORIES: dict[str, list[str]] = {
     "Politique USA": [
         r"trump", r"congress\w*", r"senate", r"senator", r"house of representatives",
         r"supreme court", r"scotus", r"white house", r"presiden(t|tial)", r"governor",
-        r"midterms?", r"democrats?", r"democratic", r"republicans?", r"gop", r"vance",
+        r"midterms?", r"democrats?", r"republicans?",
+        # Pas « democratic » seul : « Democratic Progressive Party » est taïwanais (vu le 21/11).
+        r"democratic (party|nominee|nomination|primary|presidential|leader|senator)", r"gop", r"vance",
         r"newsom", r"impeach\w*", r"executive order", r"speaker", r"filibuster",
         r"government shutdown", r"shutdown",
     ],

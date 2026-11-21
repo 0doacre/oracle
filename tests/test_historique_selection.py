@@ -127,7 +127,7 @@ def test_choisir_reserve_des_places_a_chaque_categorie():
         m.categorie, m.score = "USA", 100 - i
     for i, m in enumerate(faibles):
         m.categorie, m.score = "Radicaux", 10 - i
-    choisis = choisir(forts + faibles, n=5, par_categorie=2)
+    choisis = choisir(forts + faibles, n=5, par_groupe=2)
     assert [m.id for m in choisis] == ["usa0", "usa1", "usa2", "rad0", "rad1"]
     # Sans réserve, le score seul écarte la catégorie faible.
     assert all(m.categorie == "USA" for m in choisir(forts + faibles, n=5))
@@ -138,7 +138,7 @@ def test_la_reserve_respecte_la_limite_par_evenement():
     for i, m in enumerate(lot):
         m.categorie, m.score = "R", 10 - i
     lot[-1].categorie, lot[-1].score = "U", 100
-    assert [m.id for m in choisir(lot, n=10, par_categorie=3)] == ["u", "r0", "r1"]
+    assert [m.id for m in choisir(lot, n=10, par_groupe=3)] == ["u", "r0", "r1"]
 
 
 def test_choisir_garde_les_meilleurs_scores():

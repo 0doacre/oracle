@@ -6,141 +6,110 @@ from oracle import point_matinal as pm
 MAINTENANT = datetime(2026, 11, 22, 6, 10, tzinfo=timezone.utc)
 
 
-def briefing(genere="2026-11-22T06:00:00+00:00"):
-    return {
-        "meta": {"generated_at": genere, "total_scanned": 1000, "errors": {}},
-        "markets": [
-            {"title": "Will Marine Le Pen win the 2027 French presidential election?",
-             "category": "Droites radicales & mouvements identitaires", "source": "polymarket",
-             "yes_prob": 46.4, "delta_24h": -2.5, "end_date": "2027-04-19", "score": 50,
-             "resolution_summary": "This market will resolve to \"Yes\" if Marine Le Pen wins.",
-             "trade_alert": None},
-            {"title": "Will Marine Le Pen win the 2027  French presidential election?",
-             "category": "Droites radicales & mouvements identitaires", "source": "kalshi",
-             "yes_prob": 50.5, "delta_24h": None, "end_date": "2028-05-30", "score": 45,
-             "resolution_summary": "", "trade_alert": None},
-            {"title": "US-Iran Final Nuclear Deal by December 31, 2026?",
-             "category": "Géopolitique & Risques", "source": "polymarket",
-             "yes_prob": 5.0, "delta_24h": None, "end_date": "2026-12-31", "score": 60,
-             "resolution_summary": "",
-             "trade_alert": {"amount_usd": 13647.43, "side": "YES", "share_24h": 0.516,
-                             "wallet_profile": "Wallet concentré"}},
-        ],
-    }
+def m(titre, dossier, prob=50.0, score=10.0, source="polymarket", **autres):
+    base = {"title": titre, "dossier": dossier, "category": "x", "source": source,
+            "yes_prob": prob, "score": score, "end_date": "2027-04-19", "days_left": 150,
+            "delta_1h": None, "delta_6h": None, "delta_24h": None, "confirmed_moves": [],
+            "volume_ratio": None, "resolution_summary": "", "trade_alert": None}
+    base.update(autres)
+    return base
 
 
-def test_l_essentiel_donne_le_bon_cote_du_pari():
-    texte = pm.essentiel(briefing())
-    assert ("**Gros ordre** : 13 647 $ misés sur le OUI — « US-Iran Final Nuclear Deal by "
-            "December 31, 2026? » (polymarket). Le marché donne 5 % au OUI ; cet ordre pèse "
-            "51,6 % du volume du jour, wallet concentré.") in texte
-    b = briefing()
-    b["markets"][2]["trade_alert"]["side"] = "NO"
-    assert "misés sur le NON" in pm.essentiel(b)
+def briefing(*marches, genere="2026-11-22T06:00:00+00:00", erreurs=None):
+    return {"meta": {"generated_at": genere, "total_scanned": 1000, "errors": erreurs or {}},
+            "markets": list(marches)}
 
 
-def test_l_essentiel_liste_les_fortes_variations_et_ignore_les_petites():
-    b = briefing()
-    b["markets"][0]["delta_24h"] = -6.5
-    assert "**−6,5 pt en 24 h** — « Will Marine Le Pen" in pm.essentiel(b)
-    b["markets"][0]["delta_24h"] = 3.9
-    texte = pm.essentiel(b)
-    assert "3,9" not in texte
-    assert "Rien n'a bougé de 2 points en 1 h, 3 en 6 h ou 4 en 24 h." in texte
+ALERTE = {"amount_usd": 13647.43, "side": "YES", "share_24h": 0.516,
+          "wallet_profile": "Wallet concentré"}
 
 
-def test_l_essentiel_dit_quand_l_historique_manque():
-    b = briefing()
-    b["markets"][0]["delta_24h"] = None
-    assert "(pas encore d'historique)." in pm.essentiel(b)
+def test_une_ligne_par_dossier_avec_le_bon_cote_du_pari():
+    texte = pm.cinq_choses(briefing(
+        m("US-Iran Final Nuclear Deal?", "Iran", prob=5.0, trade_alert=ALERTE),
+        m("Will the U.S. invade Iran?", "Iran", prob=7.5)))
+    assert ("1. **Iran** — « US-Iran Final Nuclear Deal? » : 5 % au OUI (polymarket) — gros "
+            "ordre de 13 647 $ sur le OUI, 51,6 % du volume du jour, wallet concentré. "
+            "*(+ 1 autre sur la page)*") in texte
+    alerte_non = dict(ALERTE, side="NO")
+    assert "sur le NON" in pm.cinq_choses(briefing(m("Deal?", "Iran", trade_alert=alerte_non)))
 
 
-def test_un_mouvement_dans_l_heure_passe_devant_et_cite_les_autres_horizons():
-    b = briefing()
-    b["markets"][0].update(delta_1h=3.0, delta_6h=2.0, delta_24h=-1.0)   # 1 h : 1,5 × son seuil
-    b["markets"][2].update(delta_24h=5.0)                                # 24 h : 1,25 × son seuil
-    texte = pm.essentiel(b)
-    ligne_le_pen = "- **+3 pt en 1 h** (+2 en 6 h, −1 en 24 h) — « Will Marine Le Pen"
-    assert ligne_le_pen in texte
-    assert texte.index(ligne_le_pen) < texte.index("- **+5 pt en 24 h**")
+def test_cinq_dossiers_au_plus_les_plus_importants_d_abord():
+    marches = [m(f"Q{i}", f"Dossier {i}", score=i) for i in range(8)]
+    marches[1]["trade_alert"] = ALERTE                          # score 1 + 20
+    texte = pm.cinq_choses(briefing(*marches))
+    assert texte.count("**Dossier") == 5
+    assert texte.index("**Dossier 1**") < texte.index("**Dossier 7**")
+    assert "**Dossier 0**" not in texte and "**Dossier 2**" not in texte
 
 
-def test_les_pics_de_volume_sont_listes():
-    b = briefing()
-    b["markets"][2]["volume_ratio"] = 4.5
-    b["markets"][0]["volume_ratio"] = 2.9
-    texte = pm.essentiel(b)
-    assert "- **Volume × 4,5** par rapport aux jours précédents — « US-Iran" in texte
-    assert "× 2,9" not in texte
+def test_seul_un_mouvement_confirme_est_cite():
+    confirme = m("AI bubble burst in 2026?", "Bulle IA", delta_1h=-6.3,
+                 confirmed_moves=["delta_1h"])
+    douteux = m("Jerome Powell out?", "Fed", delta_1h=-4.0, confirmed_moves=[])
+    texte = pm.cinq_choses(briefing(confirme, douteux))
+    assert "**−6,3 pt en 1 h**" in texte
+    assert "−4" not in texte
 
 
-def test_les_echeances_proches_sont_listees_par_date():
-    b = briefing()
-    b["markets"][0]["days_left"] = 3
-    b["markets"][2]["days_left"] = 0
-    b["markets"][1]["days_left"] = 40
-    texte = pm.essentiel(b)
-    assert texte.index("**Aujourd'hui** — « US-Iran") < texte.index("**Dans 3 jours** — « Will Marine")
-    assert "Dans 40 jours" not in texte
+def test_un_mouvement_sous_le_seuil_n_est_pas_cite():
+    texte = pm.cinq_choses(briefing(m("Q", "D", delta_1h=1.9, confirmed_moves=["delta_1h"])))
+    assert "1,9" not in texte
 
 
-def test_une_echeance_passee_n_est_pas_listee():
-    b = briefing()
-    b["markets"][0]["days_left"] = -1
-    assert "Se décide bientôt" not in pm.essentiel(b)
+def test_echeance_et_pic_de_volume():
+    texte = pm.cinq_choses(briefing(
+        m("US x Iran Effective Ceasefire by November 22?", "Iran", days_left=1, volume_ratio=4.5)))
+    assert "volume × 4,5 par rapport aux jours précédents ; se décide demain." in texte
+    assert "se décide" not in pm.cinq_choses(briefing(m("Q", "D", days_left=-1)))
 
 
-def test_l_essentiel_signale_les_sources_en_panne_et_l_absence_d_alerte():
-    b = briefing()
-    b["meta"]["errors"] = {"polymarket": "503"}
-    b["markets"][2]["trade_alert"] = None
-    texte = pm.essentiel(b)
+def test_un_marche_hors_dossier_n_est_pas_dans_les_cinq_choses():
+    texte = pm.cinq_choses(briefing(m("Fed hike?", None, trade_alert=ALERTE)))
+    assert "Aucun dossier suivi n'a de marché actif" in texte
+
+
+def test_les_sources_en_panne_sont_signalees():
+    texte = pm.cinq_choses(briefing(m("Q", "D"), erreurs={"polymarket": "503"}))
     assert "Sources en panne pendant le relevé : polymarket." in texte
-    assert "Aucun gros ordre atypique." in texte
 
 
-def test_par_theme_suit_l_ordre_des_categories_et_donne_chaque_prix():
-    texte = pm.par_theme(briefing())
-    # Ordre de oracle.themes.CATEGORIES : Droites radicales avant Géopolitique.
-    assert texte.index("### Droites radicales") < texte.index("### Géopolitique")
-    assert ("- « US-Iran Final Nuclear Deal by December 31, 2026? » — le marché donne au OUI "
-            "5 % sur polymarket. Échéance 2026-12-31.") in texte
+def test_le_detail_range_par_dossier_puis_hors_dossiers():
+    texte = pm.detail(briefing(
+        m("Will Marine Le Pen win the 2027 French presidential election?", "Présidentielle 2027",
+          delta_24h=1.5, confirmed_moves=["delta_24h"],
+          resolution_summary="This market will resolve according to the candidate who wins."),
+        m("Fed hike?", None)))
+    assert texte.index("### Présidentielle 2027") < texte.index("## Hors dossiers")
+    assert "Variations : +1,5 pt en 24 h. Échéance 2027-04-19." in texte
+    assert "*This market will resolve according to the candidate who wins.*" in texte
 
 
-def test_une_meme_question_sur_deux_sources_tient_en_une_ligne():
-    texte = pm.par_theme(briefing())
-    assert texte.count("« Will Marine Le Pen") == 1
-    assert ("le marché donne au OUI 46,4 % sur polymarket (−2,5 pt en 24 h) ; "
-            "50,5 % sur kalshi") in texte
-
-
-def test_par_theme_joint_le_resume_de_la_regle():
-    assert "*This market will resolve to \"Yes\" if Marine Le Pen wins.*" in pm.par_theme(briefing())
-
-
-def test_le_point_contient_les_deux_parties_dans_l_ordre():
-    texte, remarques = pm.composer(briefing(), MAINTENANT)
-    assert remarques == []
-    assert texte.index("## L'essentiel") < texte.index("## Par thème")
-    assert "ni un sondage, ni une prévision" in texte
-    assert "⚠" not in texte
+def test_le_mail_court_n_a_pas_le_detail():
+    b = briefing(m("Q", "D"))
+    court, _ = pm.composer(b, MAINTENANT, court=True)
+    complet, _ = pm.composer(b, MAINTENANT)
+    assert "## Les 5 choses à savoir" in court and "## Par dossier" not in court
+    assert complet.index("## Les 5 choses à savoir") < complet.index("## Par dossier")
+    assert court.startswith("# Oracle — 22/11/2026 à 07h10")     # heure de Paris
+    assert "ni un sondage, ni une prévision" in court
 
 
 def test_un_briefing_ancien_est_signale():
-    texte, remarques = pm.composer(briefing("2026-11-21T20:00:00+00:00"), MAINTENANT)
+    texte, remarques = pm.composer(briefing(genere="2026-11-21T20:00:00+00:00"), MAINTENANT)
     assert "Briefing ancien" in texte and remarques
-    texte, _ = pm.composer(briefing("2026-11-22T05:00:00+00:00"), MAINTENANT)
+    texte, _ = pm.composer(briefing(genere="2026-11-22T05:00:00+00:00"), MAINTENANT)
     assert "Briefing ancien" not in texte
 
 
 def test_main_ecrit_le_point_du_jour(tmp_path):
     source = tmp_path / "b.json"
-    source.write_text(json.dumps(briefing()), encoding="utf-8")
+    source.write_text(json.dumps(briefing(m("Q", "D"))), encoding="utf-8")
     assert pm.main(["--briefing", str(source), "--dossier", str(tmp_path / "points"),
                     "--journal", str(tmp_path / "j.log")]) == 0
     fichiers = list((tmp_path / "points").glob("*.md"))
-    assert len(fichiers) == 1 and "## Par thème" in fichiers[0].read_text(encoding="utf-8")
-    assert "point matinal" in (tmp_path / "j.log").read_text(encoding="utf-8")
+    assert len(fichiers) == 1 and "## Par dossier" in fichiers[0].read_text(encoding="utf-8")
 
 
 def test_main_sans_briefing_echoue_proprement(tmp_path):

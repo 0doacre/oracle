@@ -8,9 +8,10 @@ import traceback
 from datetime import datetime, timezone
 
 from oracle import briefing
+from oracle.dossiers import Suivi, charger as charger_suivi
 from oracle.historique import Historique
 from oracle.http import ErreurReseau
-from oracle.selection import NB_MARCHES, PAR_CATEGORIE, choisir, est_joue, est_liquide, scorer, thematiser
+from oracle.selection import NB_MARCHES, PAR_DOSSIER, choisir, est_joue, est_liquide, scorer, thematiser
 from oracle.source import Source, collecter_tout
 from oracle.temps import a_paris
 
@@ -18,7 +19,8 @@ NB_CANDIDATS_ALERTE = 60  # un appel « trades » par candidat : on n'interroge 
 
 
 def relever(sources: list[Source], historique: Historique,
-            maintenant: datetime | None = None, journal=print) -> dict:
+            maintenant: datetime | None = None, journal=print,
+            suivi: Suivi | None = None) -> dict:
     maintenant = maintenant or datetime.now(timezone.utc)
     ts = int(maintenant.timestamp())
     par_nom = {s.nom: s for s in sources}
@@ -29,7 +31,7 @@ def relever(sources: list[Source], historique: Historique,
     tous = [m for lot in resultats.values() for m in lot]
     total = sum(s.total_scanne for s in sources)
 
-    liquides = [m for m in thematiser(tous) if est_liquide(m)]
+    liquides = [m for m in thematiser(tous, suivi) if est_liquide(m)]
     for m in liquides:
         historique.annoter(m, ts)
     historique.enregistrer(liquides, ts)
@@ -41,7 +43,7 @@ def relever(sources: list[Source], historique: Historique,
     scorer(vivants, aujourd_hui)
     _chercher_alertes(choisir(vivants, NB_CANDIDATS_ALERTE), par_nom, maintenant, erreurs)
     scorer(vivants, aujourd_hui)
-    choisis = choisir(vivants, NB_MARCHES, PAR_CATEGORIE)
+    choisis = choisir(vivants, NB_MARCHES, PAR_DOSSIER, groupe=lambda m: m.dossier)
 
     for m in choisis:
         completer = getattr(par_nom[m.source], "completer_regle", None)
@@ -84,7 +86,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         historique = Historique(args.base)
         try:
-            donnees = relever([kalshi, Polymarket(), Manifold()], historique, journal=journal)
+            donnees = relever([kalshi, Polymarket(), Manifold()], historique, journal=journal,
+                              suivi=charger_suivi())
         finally:
             historique.fermer()
         taille = briefing.ecrire(donnees, args.sortie)

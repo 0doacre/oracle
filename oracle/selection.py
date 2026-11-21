@@ -4,6 +4,7 @@ import bisect
 import math
 from datetime import date
 
+from oracle.dossiers import Suivi
 from oracle.marche import Marche
 from oracle.themes import classer, est_exclu
 
@@ -22,9 +23,14 @@ PIC_VOLUME = 3.0            # volume 24 h au moins 3 fois sa médiane des jours 
 ECHEANCE_IMMINENTE_J = 2    # se décide aujourd'hui, demain ou après-demain
 ECHEANCE_PROCHE_J = 7
 POIDS_SOURCE = {"kalshi": 1.0, "polymarket": 1.0, "manifold": 0.7}  # Manifold : monnaie fictive
+# Un mouvement sur 1 h ou 6 h ne compte que sur un marché qui s'échange vraiment.
+# Mesuré le 21/11 : Powell −4 pt en 1 h sur 1 722 $ échangés en 24 h, destitution
+# −4 pt sur 1 508 $, appel Trump–Zelensky −5,5 pt sur 5 667 $ ; en face, bulle IA
+# −6,3 pt sur 257 062 $. Le 24 h compte toujours : il s'est installé.
+VOLUME_CONFIRMATION = {"kalshi": 20_000, "polymarket": 20_000, "manifold": 10_000}
 NB_MARCHES = 25
 PAR_EVENEMENT = 2           # une question à 30 candidats ne doit pas remplir le briefing
-PAR_CATEGORIE = 2           # places réservées à chaque catégorie qui a des candidats
+PAR_DOSSIER = 2             # places réservées à chaque dossier suivi qui a des candidats
 
 # Alerte « gros ordre », commune aux sources qui donnent les transactions.
 # Mesuré sur les 60 candidats d'un vrai relevé : 29 ordres ≥ 10 k$ ; 11 pesaient
@@ -34,14 +40,18 @@ ALERTE_MONTANT_MIN_USD = 10_000
 ALERTE_PART_MIN = 0.5
 
 
-def thematiser(marches: list[Marche]) -> list[Marche]:
-    """Garde les marchés d'une des six catégories, hors bruit."""
+def thematiser(marches: list[Marche], suivi: Suivi | None = None) -> list[Marche]:
+    """Garde les marchés d'une des six catégories ou d'un dossier suivi, hors
+    bruit (exclusions générales, puis bruit déclaré dans dossiers.toml)."""
     gardes = []
     for m in marches:
         if est_exclu(m.titre, m.categorie_source):
             continue
+        if suivi and suivi.est_du_bruit(m.titre):
+            continue
         m.categorie = classer(m.titre)
-        if m.categorie:
+        m.dossier = suivi.attribuer(m.titre) if suivi else None
+        if m.categorie or m.dossier:
             gardes.append(m)
     return gardes
 
@@ -58,9 +68,16 @@ def est_joue(m: Marche) -> bool:
     return extreme and not reveil
 
 
+def horizons_confirmes(m: Marche) -> list[str]:
+    """Les variations connues qui méritent d'être crues (voir VOLUME_CONFIRMATION)."""
+    assez = m.volume_24h >= VOLUME_CONFIRMATION.get(m.source, 0)
+    return [c for c in POIDS_HORIZON
+            if getattr(m, c) is not None and (c == "delta_24h" or assez)]
+
+
 def mouvement(m: Marche) -> float:
-    """Amplitude du mouvement le plus marquant, ramenée à l'échelle « 24 h »."""
-    return max((abs(getattr(m, champ) or 0) * poids for champ, poids in POIDS_HORIZON.items()),
+    """Amplitude du mouvement confirmé le plus marquant, à l'échelle « 24 h »."""
+    return max((abs(getattr(m, c)) * POIDS_HORIZON[c] for c in horizons_confirmes(m)),
                default=0.0)
 
 
@@ -103,12 +120,12 @@ def _rangs(lot: list[Marche], cle) -> dict[int, float]:
     return {id(m): bisect.bisect_left(valeurs, cle(m)) / (len(lot) - 1) for m in lot}
 
 
-def choisir(marches: list[Marche], n: int = NB_MARCHES,
-            par_categorie: int = 0) -> list[Marche]:
-    """Les n meilleurs scores, deux par événement au plus. Avec `par_categorie`,
-    chaque catégorie qui a des candidats reçoit d'abord ce nombre de places :
-    mesuré sur un vrai relevé, le score seul donnait 23 places sur 25 aux
-    États-Unis et à la macro, et aucune aux droites radicales."""
+def choisir(marches: list[Marche], n: int = NB_MARCHES, par_groupe: int = 0,
+            groupe=lambda m: m.categorie) -> list[Marche]:
+    """Les n meilleurs scores, deux par événement au plus. Avec `par_groupe`,
+    chaque groupe (catégorie, ou dossier suivi) qui a des candidats reçoit d'abord
+    ce nombre de places ; un groupe None n'a pas de réserve. Mesuré sur un vrai
+    relevé : le score seul donnait 23 places sur 25 aux États-Unis et à la macro."""
     tries = sorted(marches, key=lambda m: m.score, reverse=True)
     choisis, par_evenement, pris = [], {}, set()
 
@@ -121,13 +138,14 @@ def choisir(marches: list[Marche], n: int = NB_MARCHES,
         choisis.append(m)
         return True
 
-    if par_categorie:
-        comptes: dict[str | None, int] = {}
+    if par_groupe:
+        comptes: dict[str, int] = {}
         for m in tries:
             if len(choisis) == n:
                 break
-            if comptes.get(m.categorie, 0) < par_categorie and prendre(m):
-                comptes[m.categorie] = comptes.get(m.categorie, 0) + 1
+            g = groupe(m)
+            if g is not None and comptes.get(g, 0) < par_groupe and prendre(m):
+                comptes[g] = comptes.get(g, 0) + 1
     for m in tries:
         if len(choisis) == n:
             break

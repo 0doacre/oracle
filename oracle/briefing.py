@@ -10,6 +10,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 from oracle.marche import Marche
+from oracle.selection import horizons_confirmes
 from oracle.temps import a_paris
 
 TAILLE_MAX_OCTETS = 25_000
@@ -52,6 +53,7 @@ def vers_json(m: Marche, aujourd_hui: date) -> dict:
         "id": m.id,
         "source": m.source,
         "category": m.categorie,
+        "dossier": m.dossier,
         "title": nettoyer_titre(m.titre),
         "yes_prob": round(m.prob, 1),
         "delta_1h": m.delta_1h,
@@ -60,6 +62,8 @@ def vers_json(m: Marche, aujourd_hui: date) -> dict:
         "volume_total": round(m.volume_total, 2),
         "volume_24h": round(m.volume_24h, 2),
         "volume_ratio": m.ratio_volume,
+        # Les variations qui méritent d'être crues (volume suffisant pour 1 h et 6 h).
+        "confirmed_moves": horizons_confirmes(m),
         "end_date": m.fin,
         "days_left": m.jours_restants(aujourd_hui),
         "resolution_summary": resumer_regle(m.regle),

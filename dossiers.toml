@@ -1,0 +1,67 @@
+# Les sujets que l'oracle suit pour toi. Modifie librement ce fichier :
+#   - ajoute ou retire un [[dossier]] ;
+#   - « mots » : expressions cherchées dans l'intitulé (anglais) des marchés,
+#     sans tenir compte des majuscules, en mots entiers. \w* = « et la suite du mot ».
+#   - un marché qui touche plusieurs dossiers va à celui qui a le plus de mots
+#     trouvés ; à égalité, au premier de la liste.
+# Le mail donne les 5 dossiers qui bougent ou se décident le plus.
+
+[bruit]
+# Marchés jamais retenus, même s'ils touchent un dossier : paris sur des
+# comptages de messages, défis mathématiques, distinctions médiatiques.
+mots = [
+  "truth social", "tweets?", "posts?", "mentions?",
+  "millennium prize", "riemann", "hodge", "navier", "yang[- ]mills", "p vs\\.? np",
+  "person of the (year|decade)",
+]
+
+[[dossier]]
+nom = "Iran"
+mots = ["iran\\w*", "tehran", "khamenei", "hormuz", "irgc"]
+
+[[dossier]]
+nom = "Ukraine – Russie"
+mots = ["ukrain\\w*", "russia\\w*", "putin", "zelensk\\w*", "kremlin", "crimea", "donbas", "kyiv"]
+
+[[dossier]]
+nom = "Chine – Taïwan"
+mots = ["taiwan\\w*", "china", "chinese", "xi jinping", "beijing", "kuomintang", "kmt", "dpp"]
+
+[[dossier]]
+nom = "Israël – Gaza – Liban"
+mots = ["israel\\w*", "gaza", "hamas", "hezbollah", "lebanon", "netanyahu", "west bank"]
+
+[[dossier]]
+nom = "Présidentielle 2027"
+mots = ["french presidential", "france presidential", "le pen", "bardella", "philippe",
+        "lisnard", "m[ée]lenchon", "retailleau", "attal", "macron"]
+
+[[dossier]]
+nom = "Droites radicales Europe"
+mots = ["afd", "reform uk", "farage", "orb[aá]n", "fidesz", "meloni", "wilders",
+        "far[- ]right", "chega", "fp[öo]"]
+
+[[dossier]]
+nom = "Trump et Washington"
+mots = ["trump", "impeach\\w*", "congress", "senate", "supreme court", "scotus",
+        "white house", "executive order", "shutdown", "speaker of the house"]
+
+[[dossier]]
+nom = "Élections US 2028"
+mots = ["2028 (us )?presidential", "presidential nomin\\w*", "presidential nominee",
+        "next presidential election", "vance", "rubio", "newsom", "ossoff", "shapiro",
+        "buttigieg", "ocasio-cortez", "aoc"]
+
+[[dossier]]
+nom = "Pétrole et énergie"
+mots = ["oil", "crude", "wti", "brent", "opec", "natural gas", "gasoline", "energy"]
+
+[[dossier]]
+nom = "Bulle IA et labos"
+mots = ["ai bubble", "openai", "anthropic", "nvidia", "chatgpt", "gpt-?\\d\\w*", "gemini",
+        "xai", "agi", "artificial intelligence", "best ai", "ai model"]
+
+[[dossier]]
+nom = "Récession et marchés"
+mots = ["recession", "s&p( 500)?", "nasdaq", "dow jones", "stock market", "unemployment",
+        "gdp", "crash"]

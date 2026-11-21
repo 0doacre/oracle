@@ -152,8 +152,8 @@ footer { color: var(--doux); font-size: 12px; margin-top: 28px; }
         <div class="vide" id="g-mouvements-vide" hidden>Pas encore de variation sur cet horizon : l'historique est trop court.</div>
       </div>
       <div class="panneau">
-        <h2>Répartition par catégorie</h2>
-        <div class="cadre"><canvas id="g-categories" aria-label="Répartition des marchés par catégorie"></canvas></div>
+        <h2>Répartition par dossier</h2>
+        <div class="cadre"><canvas id="g-categories" aria-label="Répartition des marchés par dossier"></canvas></div>
       </div>
     </section>
 
@@ -173,11 +173,16 @@ const LIBELLES = { delta_1h: "1 h", delta_6h: "6 h", delta_24h: "24 h" };
 const ECHEANCE_PROCHE_J = 7;
 const PIC_VOLUME = 3;
 const bouge = (m) => Object.entries(SEUILS).some(([c, s]) => m[c] != null && Math.abs(m[c]) >= s);
-const CATEGORIES = [
-  "Politique France & G7", "Politique USA", "Droites radicales & mouvements identitaires",
-  "Géopolitique & Risques", "Macro-finance, Énergie & IA", "Gouvernance publique, Espace & Cyber",
-];
-const COULEURS_CAT = ["#2f5d8a", "#8a4f2f", "#7a2f8a", "#2f8a6b", "#8a7a2f", "#4f6b8a"];
+const COULEURS = ["#2f5d8a", "#8a4f2f", "#7a2f8a", "#2f8a6b", "#8a7a2f", "#4f6b8a",
+  "#a14a5a", "#3f7f8f", "#6b5aa0", "#8f6a3f", "#4f8a4f", "#7a7a7a"];
+// Les dossiers suivis (dossiers.toml) ; un marché sans dossier va dans « Hors dossiers ».
+const HORS = "Hors dossiers";
+const groupe = (m) => m.dossier || HORS;
+function groupesPresents() {
+  const n = {};
+  for (const m of etat.donnees.markets) n[groupe(m)] = (n[groupe(m)] || 0) + 1;
+  return Object.keys(n).sort((a, b) => (a === HORS) - (b === HORS) || n[b] - n[a]);
+}
 
 const etat = { donnees: null, demo: false, categorie: null, recherche: "", alertes: false,
   variation: false, proche: false, horizon: "delta_24h", tri: "score" };
@@ -273,11 +278,11 @@ function el(balise, attributs = {}, ...enfants) {
 function filtres() {
   const q = etat.recherche.trim().toLowerCase();
   let liste = etat.donnees.markets.filter((m) =>
-    (!etat.categorie || m.category === etat.categorie) &&
+    (!etat.categorie || groupe(m) === etat.categorie) &&
     (!etat.alertes || m.trade_alert) &&
     (!etat.variation || bouge(m)) &&
     (!etat.proche || (m.days_left != null && m.days_left >= 0 && m.days_left <= ECHEANCE_PROCHE_J)) &&
-    (!q || `${m.title} ${m.resolution_summary || ""} ${m.category}`.toLowerCase().includes(q)));
+    (!q || `${m.title} ${m.resolution_summary || ""} ${groupe(m)}`.toLowerCase().includes(q)));
   const h = etat.horizon;
   const cles = {
     score: (m) => m.score ?? 0,
@@ -315,7 +320,7 @@ function rendreKpis() {
   const proches = markets.filter((m) => m.days_left != null && m.days_left >= 0 && m.days_left <= ECHEANCE_PROCHE_J).length;
   const kpis = [
     ["Relevé", dateFr(meta.generated_at), `${(meta.total_scanned ?? 0).toLocaleString("fr-FR")} marchés lus`],
-    ["Marchés retenus", String(markets.length), `dont ${proches} se décident sous 7 jours`],
+    ["Marchés retenus", String(markets.length), `${new Set(markets.filter((m) => m.dossier).map((m) => m.dossier)).size} dossiers, ${proches} se décident sous 7 jours`],
     [`Plus forte hausse ${lib}`, hausse && hausse[h] > 0 ? delta(hausse[h]) : "—", hausse && hausse[h] > 0 ? hausse.title : "pas de hausse sur cet horizon"],
     [`Plus forte baisse ${lib}`, baisse && baisse[h] < 0 ? delta(baisse[h]) : "—", baisse && baisse[h] < 0 ? baisse.title : "pas de baisse sur cet horizon"],
     ["Gros ordres", String(markets.filter((m) => m.trade_alert).length), "≥ 10 k$, et ≥ 50 % du volume 24 h ou wallet atypique"],
@@ -333,8 +338,8 @@ function rendreKpis() {
 }
 
 function rendrePilules() {
-  const presentes = CATEGORIES.filter((c) => etat.donnees.markets.some((m) => m.category === c));
-  const compte = (c) => etat.donnees.markets.filter((m) => !c || m.category === c).length;
+  const presentes = groupesPresents();
+  const compte = (c) => etat.donnees.markets.filter((m) => !c || groupe(m) === c).length;
   const boutons = [null, ...presentes].map((c) => {
     const b = el("button", { class: "pilule", type: "button", "aria-pressed": String(etat.categorie === c),
       text: `${c ?? "Toutes"} · ${compte(c)}` });
@@ -358,7 +363,7 @@ function carte(m) {
   const quand = m.days_left == null || m.days_left < 0 ? ""
     : m.days_left === 0 ? " (aujourd'hui)" : m.days_left === 1 ? " (demain)" : ` (dans ${m.days_left} j)`;
   const enfants = [
-    el("div", { class: "entete" }, el("span", { text: m.category }), el("span", { class: "source", text: m.source })),
+    el("div", { class: "entete" }, el("span", { text: groupe(m) }), el("span", { class: "source", text: m.source })),
     titre,
     el("div", { class: "proba" }, jauge, el("b", { text: `OUI ${nf1.format(p)} %` })),
     el("div", { class: "chiffres" }, ...badges,
@@ -424,11 +429,12 @@ function rendreGraphiques(liste) {
     });
   }
 
-  const comptes = CATEGORIES.map((c) => liste.filter((m) => m.category === c).length);
+  const noms = groupesPresents();
+  const comptes = noms.map((c) => liste.filter((m) => groupe(m) === c).length);
   graphiques.categories?.destroy();
   graphiques.categories = new Chart($("g-categories"), {
     type: "doughnut",
-    data: { labels: CATEGORIES, datasets: [{ data: comptes, backgroundColor: COULEURS_CAT, borderColor: couleur("--carte"), borderWidth: 2 }] },
+    data: { labels: noms, datasets: [{ data: comptes, backgroundColor: noms.map((_, i) => COULEURS[i % COULEURS.length]), borderColor: couleur("--carte"), borderWidth: 2 }] },
     options: { maintainAspectRatio: false, animation: false, cutout: "58%",
       plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } } } },
   });
@@ -437,8 +443,8 @@ function rendreGraphiques(liste) {
 // ---------- Démo ----------
 function demo() {
   const maintenant = new Date().toISOString();
-  const m = (id, source, category, title, yes_prob, delta_24h, volume_24h, volume_total, alerte) => ({
-    id, source, category, title, yes_prob, delta_24h, volume_total, volume_24h,
+  const m = (id, source, dossier, title, yes_prob, delta_24h, volume_24h, volume_total, alerte) => ({
+    id, source, dossier, category: dossier, title, yes_prob, delta_24h, volume_total, volume_24h,
     delta_1h: delta_24h == null ? null : Math.round(delta_24h * 3) / 10,
     delta_6h: delta_24h == null ? null : Math.round(delta_24h * 6) / 10,
     volume_ratio: null, days_left: 200,
@@ -446,16 +452,16 @@ function demo() {
     url: "https://example.com/demo", score: 0, trade_alert: alerte || null,
   });
   const markets = [
-    m("D1", "kalshi", CATEGORIES[0], "Démo — Le Parlement fictif adopte-t-il la réforme A ?", 62.5, 7.5, 180000, 2400000,
+    m("D1", "kalshi", "Dossier A", "Démo — Le Parlement fictif adopte-t-il la réforme A ?", 62.5, 7.5, 180000, 2400000,
       { amount_usd: 42000, side: "YES", share_24h: 0.31, block_trade: false, tx_timestamp: maintenant }),
-    m("D2", "kalshi", CATEGORIES[1], "Démo — Le Congrès fictif vote-t-il le budget B ?", 38, -5.5, 420000, 5100000),
-    m("D3", "manifold", CATEGORIES[2], "Démo — Le parti fictif C dépasse-t-il 20 % ?", 44, 2, 9000, 61000),
-    m("D4", "polymarket", CATEGORIES[3], "Démo — Un cessez-le-feu fictif D est-il signé ?", 27, -9, 95000, 880000,
+    m("D2", "kalshi", "Dossier B", "Démo — Le Congrès fictif vote-t-il le budget B ?", 38, -5.5, 420000, 5100000),
+    m("D3", "manifold", "Dossier C", "Démo — Le parti fictif C dépasse-t-il 20 % ?", 44, 2, 9000, 61000),
+    m("D4", "polymarket", "Dossier D", "Démo — Un cessez-le-feu fictif D est-il signé ?", 27, -9, 95000, 880000,
       { amount_usd: 15500, side: "NO", share_24h: 0.16, wallet_profile: "Wallet récent / Wallet concentré", tx_timestamp: maintenant }),
-    m("D5", "kalshi", CATEGORIES[4], "Démo — La banque centrale fictive baisse-t-elle ses taux ?", 71, 12, 650000, 7300000),
-    m("D6", "manifold", CATEGORIES[4], "Démo — Le modèle d'IA fictif E sort-il cette année ?", 55, null, 12000, 140000),
-    m("D7", "kalshi", CATEGORIES[5], "Démo — La mission spatiale fictive F décolle-t-elle à temps ?", 18, -3, 60000, 300000),
-    m("D8", "kalshi", CATEGORIES[1], "Démo — Le gouverneur fictif G est-il réélu ?", 83, 1.5, 70000, 950000),
+    m("D5", "kalshi", "Dossier E", "Démo — La banque centrale fictive baisse-t-elle ses taux ?", 71, 12, 650000, 7300000),
+    m("D6", "manifold", "Dossier E", "Démo — Le modèle d'IA fictif E sort-il cette année ?", 55, null, 12000, 140000),
+    m("D7", "kalshi", "Dossier F", "Démo — La mission spatiale fictive F décolle-t-elle à temps ?", 18, -3, 60000, 300000),
+    m("D8", "kalshi", "Dossier B", "Démo — Le gouverneur fictif G est-il réélu ?", 83, 1.5, 70000, 950000),
   ];
   markets.forEach((x, i) => (x.score = 80 - i * 6));
   Object.assign(markets[4], { days_left: 0, end_date: maintenant.slice(0, 10), volume_ratio: 4.2 });

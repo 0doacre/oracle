@@ -20,6 +20,7 @@ class Marche:
     nb_parieurs: int = 0   # connu pour Manifold seulement
     # Rempli au fil du traitement :
     categorie: str | None = None
+    dossier: str | None = None          # un des dossiers suivis (dossiers.toml)
     delta_1h: float | None = None
     delta_6h: float | None = None
     delta_24h: float | None = None

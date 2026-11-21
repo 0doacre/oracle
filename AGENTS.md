@@ -13,9 +13,10 @@ Deux étages, sans LLM ni coût :
 
 1. **Collecte** : des *sources* interrogent des API publiques, filtrent le bruit,
    gardent un historique en SQLite et exportent un JSON de moins de 25 Ko.
-2. **Point** : des phrases modèles (« L'essentiel » : gros ordres, ce qui bouge en
-   1 h/6 h/24 h, pics de volume, ce qui se décide bientôt ; puis « Par thème »).
-   Les intitulés restent en anglais. Aucun LLM ne l'écrit.
+2. **Point** : des phrases modèles. Le mail donne « Les 5 choses à savoir » : une
+   ligne par **dossier suivi** (`dossiers.toml`, que l'utilisateur modifie), les plus
+   importants d'abord (gros ordre, mouvement confirmé, échéance proche). La page
+   ajoute le détail par dossier. Intitulés de marchés en anglais ; aucun LLM.
 
 Deux façons de le faire tourner :
 - **GitHub Actions** (`.github/workflows/oracle.yml`) : un relevé chaque heure, le
@@ -34,7 +35,7 @@ DNS-over-HTTPS), réglé à la main dans Windows. Ne **jamais** contourner le bl
 le code (pas de DNS forcé, pas de `verify=False`) : sans ce réglage, la source est
 simplement notée en panne. Ne jamais parier : l'oracle ne fait que lire.
 
-**Où en est le travail** : étape 1 faite (ce qui se joue aujourd'hui). Suivantes :
+**Où en est le travail** : étape 1 (ce qui se joue aujourd'hui) et dossiers faits. Suivantes :
 alertes en direct, actualité pour dire « pourquoi ça bouge », puis mesure de la
 valeur des signaux une fois les marchés résolus.
 
@@ -51,7 +52,11 @@ réintroduire sans un contrôle qui vérifie le sens, pas seulement les mots.
   enregistrées dans `tests/fixtures/`.
 - Vérifier un endpoint par un vrai appel avant d'écrire du code dessus.
 - Les variations (`delta_1h`, `delta_6h`, `delta_24h`) valent `null` tant que
-  l'historique est trop court ; jamais 0 par défaut.
+  l'historique est trop court ; jamais 0 par défaut. Une variation sur 1 h ou 6 h ne
+  compte que sur un marché qui a échangé au moins 20 000 $ en 24 h
+  (`confirmed_moves` dans le JSON ; mesures dans `oracle/selection.py`).
+- `dossiers.toml` appartient à l'utilisateur : ne pas changer ses dossiers sans lui
+  demander. Le bruit déclaré (`[bruit]`) n'est jamais retenu.
 - « Aujourd'hui » et les créneaux de mail se comptent en heure de Paris (`oracle/temps.py`).
 - Fixtures anonymisées à l'enregistrement (dépôt public) : pas de pseudonyme, de
   biographie, d'avatar ni de vrai portefeuille.
@@ -71,7 +76,9 @@ réintroduire sans un contrôle qui vérifie le sens, pas seulement les mots.
 | `point_matinal.py` | Point d'entrée : briefing → `points/AAAA-MM-JJ.md` |
 | `diffuser.py` | Point d'entrée GitHub : point dans `site/`, mail aux créneaux (`--forcer`) |
 | `.github/workflows/oracle.yml` | Relevé horaire, mail, cache de l'historique, GitHub Pages |
-| `oracle/point_matinal.py` | Essentiel (alertes, mouvements, volume, échéances) et Par thème |
+| `dossiers.toml` | Dossiers suivis et bruit, modifiables par l'utilisateur |
+| `oracle/dossiers.py` | Lecture de `dossiers.toml`, attribution d'un marché à un dossier |
+| `oracle/point_matinal.py` | « Les 5 choses à savoir » (mail) et détail par dossier (page) |
 | `oracle/envoi.py` | Créneaux 7/12/19 h avec rattrapage, état des envois, Gmail (SMTP SSL) |
 | `oracle/rendu.py` | Markdown restreint du point → HTML échappé (mail et page) |
 | `oracle/temps.py` | Heure de Paris |
@@ -85,7 +92,7 @@ réintroduire sans un contrôle qui vérifie le sens, pas seulement les mots.
 | `oracle/sources/manifold.py` | Recherche (deux tris), règle de résolution à la demande |
 | `oracle/themes.py` | Six catégories et exclusions, par mots-clés bornés |
 | `oracle/historique.py` | SQLite sur 7 jours : variations 1 h/6 h/24 h, ratio de volume |
-| `oracle/selection.py` | Liquidité, marchés joués, score (activité, mouvement, volume, échéance, alerte), 25 retenus |
+| `oracle/selection.py` | Liquidité, bruit, mouvements confirmés, score, 25 retenus (2 places par dossier) |
 | `oracle/briefing.py` | JSON de sortie (< 25 Ko), clés en anglais = contrat |
 | `outils/enregistrer_fixtures.py` | Rafraîchit `tests/fixtures/` depuis les vraies API, anonymisées |
 | `outils/planifier.ps1` | Les deux tâches : `etat` (défaut), `installer`, `lancer [releve\|point]`, `retirer` |

@@ -108,6 +108,7 @@ def dossier(tmp_path, monkeypatch):
     briefing = {"meta": {"generated_at": "2026-12-01T06:00:00+00:00", "total_scanned": 9,
                          "errors": {}},
                 "markets": [{"title": "Will <X> happen?", "category": "Politique USA",
+                             "dossier": "Trump et Washington",
                              "source": "kalshi", "yes_prob": 40.0, "end_date": "2027-01-01",
                              "score": 1, "trade_alert": None}]}
     (tmp_path / "b.json").write_text(json.dumps(briefing), encoding="utf-8")
@@ -133,7 +134,8 @@ def test_au_creneau_le_mail_part_une_seule_fois(dossier, monkeypatch):
     mail = FauxSMTP.envoyes[0]
     assert mail["Subject"] == "Oracle — 01/12 à 07h10" and mail["To"] == "moi@exemple.org"
     corps_html = mail.get_body(("html",)).get_content()
-    assert "&lt;X&gt;" in corps_html and "https://compte.github.io/oracle/" in corps_html
+    assert "&lt;X&gt;" in corps_html and "https://compte.github.io/oracle/point.html" in corps_html
+    assert "Par dossier" not in corps_html                     # le mail est court
     assert lancer(dossier, monkeypatch, utc(12, 1, 7)) == 0            # 8 h : déjà envoyé
     assert len(FauxSMTP.envoyes) == 1
 

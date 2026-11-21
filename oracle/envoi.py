@@ -153,18 +153,22 @@ def main(argv: list[str] | None = None, smtp_ssl=smtplib.SMTP_SSL, smtp_clair=sm
 
     maintenant = datetime.now(timezone.utc)
     local = a_paris(maintenant)
-    texte, remarques = composer(briefing, maintenant)
+    # Le mail : les 5 choses à savoir. La page : les 5 choses et le détail par dossier.
+    complet, remarques = composer(briefing, maintenant)
+    court, _ = composer(briefing, maintenant, court=True)
     for r in remarques:
         journal(f"envoi : {r}")
     url = url_de_la_page()
-    pied = (f'<hr><p><a href="{url}">Ouvrir le tableau de bord</a></p>' if url else "")
     titre = f"Oracle — {local:%d/%m} à {local:%H}h{local:%M}"
-    page_html = rendu.page(texte, titre, pied)
+    pied_page = f'<hr><p><a href="{url}">Ouvrir le tableau de bord</a></p>' if url else ""
+    pied_mail = (f'<hr><p><a href="{url}point.html">Le détail par dossier</a> · '
+                 f'<a href="{url}">le tableau de bord</a></p>' if url else "")
+    mail_html = rendu.page(court, titre, pied_mail)
 
     site = Path(args.site)
     site.mkdir(parents=True, exist_ok=True)
-    (site / "point.md").write_text(texte, encoding="utf-8")
-    (site / "point.html").write_text(page_html, encoding="utf-8")
+    (site / "point.md").write_text(complet, encoding="utf-8")
+    (site / "point.html").write_text(rendu.page(complet, titre, pied_page), encoding="utf-8")
 
     etat = Path(args.etat)
     deja = lire_etat(etat)
@@ -184,8 +188,8 @@ def main(argv: list[str] | None = None, smtp_ssl=smtplib.SMTP_SSL, smtp_clair=sm
         journal("envoi : mail non envoyé, adresse incomplète (il manque « @ ») dans : "
                 + ", ".join(sans_arobase))
         return 1
-    message = construire_mail(titre, texte + (f"\n\nTableau de bord : {url}\n" if url else ""),
-                              page_html, os.environ["ORACLE_SMTP_UTILISATEUR"].strip(),
+    message = construire_mail(titre, court + (f"\n\nLe détail : {url}point.html\n" if url else ""),
+                              mail_html, os.environ["ORACLE_SMTP_UTILISATEUR"].strip(),
                               os.environ["ORACLE_DESTINATAIRE"].strip())
     try:
         mode = envoyer(message, os.environ["ORACLE_SMTP_UTILISATEUR"],

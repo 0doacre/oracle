@@ -5,14 +5,14 @@ from datetime import date
 
 from oracle.historique import Historique
 from oracle.marche import Marche
-from oracle.selection import est_joue, est_pic_de_volume, mouvement, scorer
+from oracle.selection import est_joue, est_pic_de_volume, horizons_confirmes, mouvement, scorer
 
 H = 3600
 T0 = 1_800_000_000
 AUJOURD_HUI = date(2026, 11, 22)
 
 
-def marche(id="m", prob=50.0, v_24h=1_000.0, fin="2027-06-01"):
+def marche(id="m", prob=50.0, v_24h=50_000.0, fin="2027-06-01"):
     return Marche(source="kalshi", id=id, evenement=id, titre=id, prob=prob,
                   volume_total=100_000, volume_24h=v_24h, fin=fin, url="u")
 
@@ -121,3 +121,20 @@ def test_jours_restants():
     assert marche(fin="2026-11-22").jours_restants(AUJOURD_HUI) == 0
     assert marche(fin="2026-11-25").jours_restants(AUJOURD_HUI) == 3
     assert marche(fin="").jours_restants(AUJOURD_HUI) is None
+
+
+def test_un_mouvement_court_sur_un_marche_peu_echange_n_est_pas_confirme():
+    # Cas réel du 21/11 : Powell −4 pt en 1 h sur 1 722 $ échangés en 24 h.
+    m = marche(v_24h=1_722)
+    m.delta_1h, m.delta_6h, m.delta_24h = -4.0, -4.0, 1.0
+    assert horizons_confirmes(m) == ["delta_24h"]
+    assert mouvement(m) == 1.0
+    m.volume_24h = 20_000
+    assert horizons_confirmes(m) == ["delta_1h", "delta_6h", "delta_24h"]
+    assert mouvement(m) == 12.0
+
+
+def test_une_variation_inconnue_n_est_pas_confirmee():
+    m = marche()
+    m.delta_24h = 2.0
+    assert horizons_confirmes(m) == ["delta_24h"]
