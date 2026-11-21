@@ -177,6 +177,13 @@ def main(argv: list[str] | None = None, smtp_ssl=smtplib.SMTP_SSL, smtp_clair=sm
     if manquantes:
         journal("envoi : mail non envoyé, secrets absents : " + ", ".join(manquantes))
         return 1
+    # Vu en vrai : un identifiant sans « @ » fait couper Gmail sans explication.
+    sans_arobase = [v for v in ("ORACLE_SMTP_UTILISATEUR", "ORACLE_DESTINATAIRE")
+                    if "@" not in os.environ[v]]
+    if sans_arobase:
+        journal("envoi : mail non envoyé, adresse incomplète (il manque « @ ») dans : "
+                + ", ".join(sans_arobase))
+        return 1
     message = construire_mail(titre, texte + (f"\n\nTableau de bord : {url}\n" if url else ""),
                               page_html, os.environ["ORACLE_SMTP_UTILISATEUR"].strip(),
                               os.environ["ORACLE_DESTINATAIRE"].strip())

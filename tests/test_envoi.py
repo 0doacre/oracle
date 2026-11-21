@@ -208,3 +208,11 @@ def test_l_echec_journalise_le_diagnostic(dossier, monkeypatch):
     journal = (dossier / "j.log").read_text(encoding="utf-8")
     assert "utilisateur : 15 caractères, avec « @ »" in journal
     assert "bon" not in journal.split("—")[-1].replace("non ASCII", "")
+
+
+def test_une_adresse_sans_arobase_est_refusee_avant_toute_connexion(dossier, monkeypatch):
+    monkeypatch.setenv("ORACLE_SMTP_UTILISATEUR", "moi.exemple.org")
+    assert lancer(dossier, monkeypatch, HIVER) == 1
+    assert FauxSMTP.connexions == []
+    assert "adresse incomplète" in (dossier / "j.log").read_text(encoding="utf-8")
+    assert "ORACLE_SMTP_UTILISATEUR" in (dossier / "j.log").read_text(encoding="utf-8")
