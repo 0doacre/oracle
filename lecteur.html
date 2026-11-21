@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oracle — briefing</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --fond: #f6f5f1; --carte: #ffffff; --texte: #1c1c1a; --doux: #6b6a64; --trait: #e3e1da;
+  --accent: #2f5d8a; --hausse: #2e7d4f; --baisse: #b23a3a; --alerte: #b06a00;
+  --alerte-fond: #fff4e0; --jauge: #e9e7e0; --pilule: #efede7;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fond: #121314; --carte: #1b1d1f; --texte: #e8e6e1; --doux: #9a988f; --trait: #2c2f32;
+    --accent: #7fb0e0; --hausse: #5cc48a; --baisse: #ee7b7b; --alerte: #f0b04a;
+    --alerte-fond: #2e2412; --jauge: #2c2f32; --pilule: #24272a;
+  }
+}
+:root[data-theme="dark"] {
+  --fond: #121314; --carte: #1b1d1f; --texte: #e8e6e1; --doux: #9a988f; --trait: #2c2f32;
+  --accent: #7fb0e0; --hausse: #5cc48a; --baisse: #ee7b7b; --alerte: #f0b04a;
+  --alerte-fond: #2e2412; --jauge: #2c2f32; --pilule: #24272a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fond); color: var(--texte);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; }
+header { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between; }
+h1 { font-size: 22px; margin: 0; letter-spacing: .3px; }
+h1 small { color: var(--doux); font-weight: 400; font-size: 14px; margin-left: 8px; }
+h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .8px; color: var(--doux); margin: 0 0 10px; font-weight: 600; }
+button, select, input { font: inherit; color: inherit; }
+.bouton { background: var(--carte); border: 1px solid var(--trait); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.bouton:hover { border-color: var(--accent); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+#accueil { margin-top: 24px; border: 2px dashed var(--trait); border-radius: 12px; padding: 32px 16px; text-align: center; background: var(--carte); }
+#accueil.survol { border-color: var(--accent); }
+#accueil p { color: var(--doux); margin: 8px 0 16px; }
+.erreur { color: var(--baisse); }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin: 18px 0; }
+.kpi { background: var(--carte); border: 1px solid var(--trait); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.kpi .libelle { color: var(--doux); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
+.kpi .valeur { font: 600 22px/1.2 var(--mono); margin-top: 4px; }
+.kpi .detail { color: var(--doux); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.controles { background: var(--carte); border: 1px solid var(--trait); border-radius: 10px; padding: 12px 14px; display: grid; gap: 10px; }
+.pilules { display: flex; flex-wrap: wrap; gap: 6px; }
+.pilule { background: var(--pilule); border: 1px solid transparent; border-radius: 999px; padding: 4px 11px; cursor: pointer; font-size: 13px; }
+.pilule[aria-pressed="true"] { background: var(--accent); color: var(--carte); }
+.ligne { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.ligne input[type=search] { flex: 1 1 220px; min-width: 0; padding: 7px 10px; border: 1px solid var(--trait); border-radius: 8px; background: var(--fond); }
+.ligne label { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; cursor: pointer; }
+.ligne select { padding: 6px 8px; border: 1px solid var(--trait); border-radius: 8px; background: var(--fond); }
+
+.graphiques { display: grid; grid-template-columns: 3fr 2fr; gap: 10px; margin: 18px 0; }
+.panneau { background: var(--carte); border: 1px solid var(--trait); border-radius: 10px; padding: 14px; min-width: 0; }
+.cadre { position: relative; height: 300px; }
+.vide { color: var(--doux); font-size: 14px; padding: 40px 8px; text-align: center; }
+
+.compte { color: var(--doux); font-size: 14px; margin: 4px 0 10px; }
+.grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+.carte { background: var(--carte); border: 1px solid var(--trait); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.carte.avec-alerte { border-color: var(--alerte); }
+.entete { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--doux); }
+.entete .source { font-family: var(--mono); text-transform: uppercase; }
+.carte a { color: var(--texte); text-decoration: none; font-weight: 600; overflow-wrap: anywhere; }
+.carte a:hover { color: var(--accent); text-decoration: underline; }
+.proba { display: flex; align-items: center; gap: 10px; }
+.jauge { flex: 1; height: 8px; background: var(--jauge); border-radius: 4px; overflow: hidden; }
+.jauge span { display: block; height: 100%; background: var(--accent); }
+.proba b { font: 600 16px var(--mono); min-width: 74px; text-align: right; }
+.chiffres { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--doux); }
+.chiffres .mono { font-family: var(--mono); color: var(--texte); }
+.delta { font-family: var(--mono); font-weight: 600; padding: 1px 7px; border-radius: 6px; background: var(--pilule); }
+.delta.hausse { color: var(--hausse); } .delta.baisse { color: var(--baisse); }
+.regle { font-size: 13px; color: var(--doux); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.alerte { background: var(--alerte-fond); border-left: 3px solid var(--alerte); border-radius: 6px; padding: 7px 10px; font-size: 13px; }
+.alerte strong { color: var(--alerte); }
+.demo { background: var(--alerte-fond); color: var(--alerte); border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 600; }
+.erreurs-source { color: var(--baisse); font-size: 13px; margin-top: 8px; }
+footer { color: var(--doux); font-size: 12px; margin-top: 28px; }
+[hidden] { display: none !important; }
+
+@media (max-width: 760px) {
+  .graphiques { grid-template-columns: 1fr; }
+  .grille { grid-template-columns: 1fr; }
+  .cadre { height: 260px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Oracle <small id="sous-titre">briefing des marchés de prédiction</small></h1>
+    <div class="actions">
+      <a class="bouton" id="lien-point" href="point.html" hidden style="text-decoration:none;color:inherit">Dernier point</a>
+      <button class="bouton" id="btn-fichier" type="button">Charger un briefing</button>
+      <button class="bouton" id="btn-demo" type="button">Mode démo</button>
+      <button class="bouton" id="btn-theme" type="button" aria-label="Changer de thème">◐</button>
+      <input type="file" id="fichier" accept=".json,application/json" hidden>
+    </div>
+  </header>
+
+  <section id="accueil">
+    <h2>Aucun briefing chargé</h2>
+    <p id="accueil-texte">Recherche de <code>briefing_oracle.json</code> à côté de cette page…</p>
+    <div class="actions" style="justify-content:center">
+      <button class="bouton" id="btn-fichier-2" type="button">Charger briefing_oracle.json</button>
+      <button class="bouton" id="btn-demo-2" type="button">Voir la démo</button>
+    </div>
+    <p style="margin-top:14px">ou glisser-déposer le fichier ici.</p>
+  </section>
+
+  <div id="tableau" hidden>
+    <section class="kpis" id="kpis"></section>
+
+    <section class="controles" aria-label="Filtres">
+      <div class="pilules" id="pilules"></div>
+      <div class="ligne">
+        <input type="search" id="recherche" placeholder="Rechercher un marché…" aria-label="Recherche">
+        <label><input type="checkbox" id="f-alertes"> Gros ordres uniquement</label>
+        <label><input type="checkbox" id="f-variation"> Bouge (2 pt/1 h, 3/6 h, 4/24 h)</label>
+        <label><input type="checkbox" id="f-proche"> Se décide sous 7 jours</label>
+        <label>Horizon
+          <select id="horizon">
+            <option value="delta_1h">1 h</option>
+            <option value="delta_6h">6 h</option>
+            <option value="delta_24h" selected>24 h</option>
+          </select>
+        </label>
+        <label>Tri
+          <select id="tri">
+            <option value="score">Score</option>
+            <option value="delta">Variation (horizon choisi)</option>
+            <option value="echeance">Échéance la plus proche</option>
+            <option value="prob">Probabilité</option>
+            <option value="volume">Volume 24 h</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="graphiques">
+      <div class="panneau">
+        <h2 id="titre-mouvements">Plus forts mouvements 24 h</h2>
+        <div class="cadre"><canvas id="g-mouvements" aria-label="Plus forts mouvements sur l'horizon choisi"></canvas></div>
+        <div class="vide" id="g-mouvements-vide" hidden>Pas encore de variation sur cet horizon : l'historique est trop court.</div>
+      </div>
+      <div class="panneau">
+        <h2>Répartition par catégorie</h2>
+        <div class="cadre"><canvas id="g-categories" aria-label="Répartition des marchés par catégorie"></canvas></div>
+      </div>
+    </section>
+
+    <p class="compte" id="compte"></p>
+    <section class="grille" id="grille"></section>
+  </div>
+
+  <footer>Données publiques Kalshi, Polymarket et Manifold, relevées par <code>collecteur.py</code>. Information, pas conseil : aucune recommandation de pari.</footer>
+</main>
+
+<script>
+"use strict";
+(() => {
+// Mêmes seuils que le point matinal (oracle/point_matinal.py).
+const SEUILS = { delta_1h: 2, delta_6h: 3, delta_24h: 4 };
+const LIBELLES = { delta_1h: "1 h", delta_6h: "6 h", delta_24h: "24 h" };
+const ECHEANCE_PROCHE_J = 7;
+const PIC_VOLUME = 3;
+const bouge = (m) => Object.entries(SEUILS).some(([c, s]) => m[c] != null && Math.abs(m[c]) >= s);
+const CATEGORIES = [
+  "Politique France & G7", "Politique USA", "Droites radicales & mouvements identitaires",
+  "Géopolitique & Risques", "Macro-finance, Énergie & IA", "Gouvernance publique, Espace & Cyber",
+];
+const COULEURS_CAT = ["#2f5d8a", "#8a4f2f", "#7a2f8a", "#2f8a6b", "#8a7a2f", "#4f6b8a"];
+
+const etat = { donnees: null, demo: false, categorie: null, recherche: "", alertes: false,
+  variation: false, proche: false, horizon: "delta_24h", tri: "score" };
+const graphiques = {};
+const $ = (id) => document.getElementById(id);
+
+// ---------- Chargement ----------
+function valider(d) {
+  if (!d || typeof d !== "object" || !d.meta || !Array.isArray(d.markets)) {
+    throw new Error("ce fichier n'a pas la forme d'un briefing (meta + markets)");
+  }
+  return d;
+}
+
+function charger(d, demo = false) {
+  etat.donnees = valider(d);
+  etat.demo = demo;
+  etat.categorie = null;
+  $("accueil").hidden = true;
+  $("tableau").hidden = false;
+  rendre();
+}
+
+function lireFichier(fichier) {
+  const lecteur = new FileReader();
+  lecteur.onload = () => {
+    try { charger(JSON.parse(lecteur.result)); }
+    catch (e) { erreurAccueil(`Lecture impossible : ${e.message}`); }
+  };
+  lecteur.readAsText(fichier, "utf-8");
+}
+
+function erreurAccueil(texte) {
+  $("accueil").hidden = false;
+  $("tableau").hidden = true;
+  const p = $("accueil-texte");
+  p.textContent = texte;
+  p.className = "erreur";
+}
+
+async function chargerAuto() {
+  if (location.protocol === "file:") {
+    $("accueil-texte").textContent =
+      "Page ouverte en local (file://) : le navigateur interdit la lecture automatique. Chargez le fichier, ou lancez « python -m http.server » dans le dossier.";
+    return;
+  }
+  // Sur la page publiée, le point du dernier relevé est à côté du lecteur.
+  fetch("./point.html", { method: "HEAD", cache: "no-store" })
+    .then((r) => { if (r.ok) $("lien-point").hidden = false; }).catch(() => {});
+  try {
+    const r = await fetch("./briefing_oracle.json", { cache: "no-store" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    charger(await r.json());
+  } catch (e) {
+    $("accueil-texte").textContent = `briefing_oracle.json introuvable (${e.message}). Lancez collecteur.py, ou chargez un fichier.`;
+  }
+}
+
+// ---------- Formatage ----------
+const nf1 = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+function compact(n) {
+  if (n == null || !isFinite(n)) return "—";
+  const abs = Math.abs(n);
+  if (abs >= 1e6) return nf1.format(n / 1e6) + " M";
+  if (abs >= 1e3) return Math.round(n / 1e3) + " k";
+  return String(Math.round(n));
+}
+function volume(n, source) {
+  return source === "manifold" ? `${compact(n)} mana` : `${compact(n)} $`;  // USDC ≈ $
+}
+function delta(d) {
+  if (d == null) return "—";
+  return (d > 0 ? "+" : d < 0 ? "−" : "±") + nf1.format(Math.abs(d)) + " pt";
+}
+function dateFr(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? "—" : d.toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
+}
+function urlSure(u) {
+  try { const x = new URL(u); return x.protocol === "https:" || x.protocol === "http:" ? x.href : null; }
+  catch { return null; }
+}
+function el(balise, attributs = {}, ...enfants) {
+  const n = document.createElement(balise);
+  for (const [k, v] of Object.entries(attributs)) {
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else n.setAttribute(k, v);
+  }
+  for (const e of enfants) if (e != null) n.append(e);
+  return n;
+}
+
+// ---------- Filtres ----------
+function filtres() {
+  const q = etat.recherche.trim().toLowerCase();
+  let liste = etat.donnees.markets.filter((m) =>
+    (!etat.categorie || m.category === etat.categorie) &&
+    (!etat.alertes || m.trade_alert) &&
+    (!etat.variation || bouge(m)) &&
+    (!etat.proche || (m.days_left != null && m.days_left >= 0 && m.days_left <= ECHEANCE_PROCHE_J)) &&
+    (!q || `${m.title} ${m.resolution_summary || ""} ${m.category}`.toLowerCase().includes(q)));
+  const h = etat.horizon;
+  const cles = {
+    score: (m) => m.score ?? 0,
+    delta: (m) => (m[h] == null ? -1 : Math.abs(m[h])),
+    echeance: (m) => (m.days_left == null || m.days_left < 0 ? -1e9 : -m.days_left),
+    prob: (m) => m.yes_prob ?? 0,
+    volume: (m) => m.volume_24h ?? 0,
+  };
+  const cle = cles[etat.tri];
+  return liste.sort((a, b) => cle(b) - cle(a));
+}
+
+// ---------- Rendu ----------
+function rendre() {
+  rendreEntete();
+  rendreKpis();
+  rendrePilules();
+  const liste = filtres();
+  rendreCartes(liste);
+  rendreGraphiques(liste);
+}
+
+function rendreEntete() {
+  const st = $("sous-titre");
+  st.textContent = "briefing des marchés de prédiction ";
+  if (etat.demo) st.append(el("span", { class: "demo", text: "DÉMO — données fictives" }));
+}
+
+function rendreKpis() {
+  const { meta, markets } = etat.donnees;
+  const h = etat.horizon, lib = LIBELLES[h];
+  const avecDelta = markets.filter((m) => m[h] != null);
+  const hausse = avecDelta.reduce((a, m) => (!a || m[h] > a[h] ? m : a), null);
+  const baisse = avecDelta.reduce((a, m) => (!a || m[h] < a[h] ? m : a), null);
+  const proches = markets.filter((m) => m.days_left != null && m.days_left >= 0 && m.days_left <= ECHEANCE_PROCHE_J).length;
+  const kpis = [
+    ["Relevé", dateFr(meta.generated_at), `${(meta.total_scanned ?? 0).toLocaleString("fr-FR")} marchés lus`],
+    ["Marchés retenus", String(markets.length), `dont ${proches} se décident sous 7 jours`],
+    [`Plus forte hausse ${lib}`, hausse && hausse[h] > 0 ? delta(hausse[h]) : "—", hausse && hausse[h] > 0 ? hausse.title : "pas de hausse sur cet horizon"],
+    [`Plus forte baisse ${lib}`, baisse && baisse[h] < 0 ? delta(baisse[h]) : "—", baisse && baisse[h] < 0 ? baisse.title : "pas de baisse sur cet horizon"],
+    ["Gros ordres", String(markets.filter((m) => m.trade_alert).length), "≥ 10 k$, et ≥ 50 % du volume 24 h ou wallet atypique"],
+  ];
+  const zone = $("kpis");
+  zone.replaceChildren(...kpis.map(([l, v, d]) =>
+    el("div", { class: "kpi" }, el("div", { class: "libelle", text: l }),
+      el("div", { class: "valeur", text: v }), el("div", { class: "detail", text: d, title: d }))));
+  const erreurs = Object.entries(meta.errors || {});
+  if (erreurs.length) {
+    zone.append(el("div", { class: "kpi erreurs-source" },
+      el("div", { class: "libelle", text: "Sources en panne" }),
+      el("div", { class: "detail", text: erreurs.map(([s]) => s).join(", "), title: erreurs.map(([s, e]) => `${s} : ${e}`).join("\n") })));
+  }
+}
+
+function rendrePilules() {
+  const presentes = CATEGORIES.filter((c) => etat.donnees.markets.some((m) => m.category === c));
+  const compte = (c) => etat.donnees.markets.filter((m) => !c || m.category === c).length;
+  const boutons = [null, ...presentes].map((c) => {
+    const b = el("button", { class: "pilule", type: "button", "aria-pressed": String(etat.categorie === c),
+      text: `${c ?? "Toutes"} · ${compte(c)}` });
+    b.addEventListener("click", () => { etat.categorie = c; rendre(); });
+    return b;
+  });
+  $("pilules").replaceChildren(...boutons);
+}
+
+function carte(m) {
+  const url = urlSure(m.url);
+  const titre = url ? el("a", { href: url, target: "_blank", rel: "noopener noreferrer", text: m.title })
+                    : el("strong", { text: m.title });
+  const p = Math.max(0, Math.min(100, m.yes_prob ?? 0));
+  const jauge = el("div", { class: "jauge", role: "img", "aria-label": `OUI ${nf1.format(p)} %` }, el("span"));
+  jauge.firstChild.style.width = `${p}%`;
+  const badges = Object.keys(LIBELLES).filter((c) => m[c] != null).map((c) =>
+    el("span", { class: `delta ${m[c] > 0 ? "hausse" : m[c] < 0 ? "baisse" : ""}`,
+      title: `Variation sur ${LIBELLES[c]}`, text: `${LIBELLES[c]} ${delta(m[c])}` }));
+  if (!badges.length) badges.push(el("span", { class: "delta", title: "Pas encore d'historique", text: "Δ —" }));
+  const quand = m.days_left == null || m.days_left < 0 ? ""
+    : m.days_left === 0 ? " (aujourd'hui)" : m.days_left === 1 ? " (demain)" : ` (dans ${m.days_left} j)`;
+  const enfants = [
+    el("div", { class: "entete" }, el("span", { text: m.category }), el("span", { class: "source", text: m.source })),
+    titre,
+    el("div", { class: "proba" }, jauge, el("b", { text: `OUI ${nf1.format(p)} %` })),
+    el("div", { class: "chiffres" }, ...badges,
+      (m.volume_ratio ?? 0) >= PIC_VOLUME
+        ? el("span", { class: "delta hausse", title: "Volume 24 h comparé à sa médiane des jours précédents",
+            text: `volume × ${nf1.format(m.volume_ratio)}` }) : null,
+      el("span", {}, "24 h ", el("span", { class: "mono", text: volume(m.volume_24h, m.source) })),
+      el("span", {}, "total ", el("span", { class: "mono", text: volume(m.volume_total, m.source) })),
+      m.end_date ? el("span", {}, "fin ", el("span", { class: "mono", text: m.end_date + quand })) : null),
+    m.resolution_summary ? el("div", { class: "regle", text: m.resolution_summary, title: m.resolution_summary }) : null,
+  ];
+  const a = m.trade_alert;
+  if (a) {
+    enfants.push(el("div", { class: "alerte" }, el("strong", { text: "Gros ordre " }),
+      `${a.side === "YES" ? "OUI" : "NON"} · ${compact(a.amount_usd)} $ · ${Math.round((a.share_24h ?? 0) * 100)} % du volume 24 h` +
+      (a.block_trade ? " · bloc" : "") + (a.wallet_profile ? ` · ${a.wallet_profile}` : "") +
+      (a.tx_timestamp ? ` · ${dateFr(a.tx_timestamp)}` : "")));
+  }
+  return el("article", { class: "carte" + (a ? " avec-alerte" : "") }, ...enfants);
+}
+
+function rendreCartes(liste) {
+  $("compte").textContent = `${liste.length} marché${liste.length > 1 ? "s" : ""} affiché${liste.length > 1 ? "s" : ""} sur ${etat.donnees.markets.length}`;
+  $("grille").replaceChildren(...(liste.length ? liste.map(carte)
+    : [el("div", { class: "vide", text: "Aucun marché ne correspond à ces filtres." })]));
+}
+
+function couleur(nom) { return getComputedStyle(document.documentElement).getPropertyValue(nom).trim(); }
+
+function rendreGraphiques(liste) {
+  if (typeof Chart === "undefined") {
+    for (const id of ["g-mouvements", "g-categories"]) {
+      $(id).parentElement.replaceChildren(el("div", { class: "vide", text: "Graphiques indisponibles : Chart.js n'a pas pu être chargé (hors ligne ?)." }));
+    }
+    return;
+  }
+  Chart.defaults.color = couleur("--doux");
+  Chart.defaults.borderColor = couleur("--trait");
+  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+
+  const h = etat.horizon;
+  $("titre-mouvements").textContent = `Plus forts mouvements ${LIBELLES[h]}`;
+  const mouvements = liste.filter((m) => m[h] != null && m[h] !== 0)
+    .sort((a, b) => Math.abs(b[h]) - Math.abs(a[h])).slice(0, 10);
+  $("g-mouvements").parentElement.hidden = !mouvements.length;
+  $("g-mouvements-vide").hidden = !!mouvements.length;
+  graphiques.mouvements?.destroy();
+  if (mouvements.length) {
+    graphiques.mouvements = new Chart($("g-mouvements"), {
+      type: "bar",
+      data: {
+        labels: mouvements.map((m) => (m.title.length > 48 ? m.title.slice(0, 47) + "…" : m.title)),
+        datasets: [{ data: mouvements.map((m) => m[h]),
+          backgroundColor: mouvements.map((m) => couleur(m[h] > 0 ? "--hausse" : "--baisse")),
+          borderRadius: 3 }],
+      },
+      options: {
+        indexAxis: "y", maintainAspectRatio: false, animation: false,
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { title: (i) => mouvements[i[0].dataIndex].title, label: (i) => delta(i.raw) } } },
+        scales: { x: { ticks: { callback: (v) => `${v > 0 ? "+" : ""}${v} pt` } }, y: { ticks: { autoSkip: false, font: { size: 11 } } } },
+      },
+    });
+  }
+
+  const comptes = CATEGORIES.map((c) => liste.filter((m) => m.category === c).length);
+  graphiques.categories?.destroy();
+  graphiques.categories = new Chart($("g-categories"), {
+    type: "doughnut",
+    data: { labels: CATEGORIES, datasets: [{ data: comptes, backgroundColor: COULEURS_CAT, borderColor: couleur("--carte"), borderWidth: 2 }] },
+    options: { maintainAspectRatio: false, animation: false, cutout: "58%",
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } } } },
+  });
+}
+
+// ---------- Démo ----------
+function demo() {
+  const maintenant = new Date().toISOString();
+  const m = (id, source, category, title, yes_prob, delta_24h, volume_24h, volume_total, alerte) => ({
+    id, source, category, title, yes_prob, delta_24h, volume_total, volume_24h,
+    delta_1h: delta_24h == null ? null : Math.round(delta_24h * 3) / 10,
+    delta_6h: delta_24h == null ? null : Math.round(delta_24h * 6) / 10,
+    volume_ratio: null, days_left: 200,
+    end_date: "2027-06-30", resolution_summary: "Démo : se résout OUI si l'événement fictif a lieu avant l'échéance.",
+    url: "https://example.com/demo", score: 0, trade_alert: alerte || null,
+  });
+  const markets = [
+    m("D1", "kalshi", CATEGORIES[0], "Démo — Le Parlement fictif adopte-t-il la réforme A ?", 62.5, 7.5, 180000, 2400000,
+      { amount_usd: 42000, side: "YES", share_24h: 0.31, block_trade: false, tx_timestamp: maintenant }),
+    m("D2", "kalshi", CATEGORIES[1], "Démo — Le Congrès fictif vote-t-il le budget B ?", 38, -5.5, 420000, 5100000),
+    m("D3", "manifold", CATEGORIES[2], "Démo — Le parti fictif C dépasse-t-il 20 % ?", 44, 2, 9000, 61000),
+    m("D4", "polymarket", CATEGORIES[3], "Démo — Un cessez-le-feu fictif D est-il signé ?", 27, -9, 95000, 880000,
+      { amount_usd: 15500, side: "NO", share_24h: 0.16, wallet_profile: "Wallet récent / Wallet concentré", tx_timestamp: maintenant }),
+    m("D5", "kalshi", CATEGORIES[4], "Démo — La banque centrale fictive baisse-t-elle ses taux ?", 71, 12, 650000, 7300000),
+    m("D6", "manifold", CATEGORIES[4], "Démo — Le modèle d'IA fictif E sort-il cette année ?", 55, null, 12000, 140000),
+    m("D7", "kalshi", CATEGORIES[5], "Démo — La mission spatiale fictive F décolle-t-elle à temps ?", 18, -3, 60000, 300000),
+    m("D8", "kalshi", CATEGORIES[1], "Démo — Le gouverneur fictif G est-il réélu ?", 83, 1.5, 70000, 950000),
+  ];
+  markets.forEach((x, i) => (x.score = 80 - i * 6));
+  Object.assign(markets[4], { days_left: 0, end_date: maintenant.slice(0, 10), volume_ratio: 4.2 });
+  Object.assign(markets[1], { days_left: 3 });
+  return { meta: { generated_at: maintenant, total_scanned: 12345, selected_count: markets.length,
+    volume_units: { kalshi: "contracts (~USD)", polymarket: "USDC", manifold: "mana (play money)" }, errors: {} }, markets };
+}
+
+// ---------- Thème ----------
+function basculerTheme() {
+  const racine = document.documentElement;
+  const sombre = racine.dataset.theme ? racine.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  racine.dataset.theme = sombre ? "light" : "dark";
+  try { localStorage.setItem("oracle-theme", racine.dataset.theme); } catch {}
+  if (etat.donnees) rendre();
+}
+try { const t = localStorage.getItem("oracle-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+
+// ---------- Événements ----------
+for (const id of ["btn-fichier", "btn-fichier-2"]) $(id).addEventListener("click", () => $("fichier").click());
+for (const id of ["btn-demo", "btn-demo-2"]) $(id).addEventListener("click", () => charger(demo(), true));
+$("btn-theme").addEventListener("click", basculerTheme);
+$("fichier").addEventListener("change", (e) => { if (e.target.files[0]) lireFichier(e.target.files[0]); e.target.value = ""; });
+$("recherche").addEventListener("input", (e) => { etat.recherche = e.target.value; rendre(); });
+$("f-alertes").addEventListener("change", (e) => { etat.alertes = e.target.checked; rendre(); });
+$("f-variation").addEventListener("change", (e) => { etat.variation = e.target.checked; rendre(); });
+$("f-proche").addEventListener("change", (e) => { etat.proche = e.target.checked; rendre(); });
+$("horizon").addEventListener("change", (e) => { etat.horizon = e.target.value; rendre(); });
+$("tri").addEventListener("change", (e) => { etat.tri = e.target.value; rendre(); });
+for (const t of ["dragenter", "dragover"]) document.addEventListener(t, (e) => { e.preventDefault(); $("accueil").classList.add("survol"); });
+for (const t of ["dragleave", "drop"]) document.addEventListener(t, (e) => { e.preventDefault(); $("accueil").classList.remove("survol"); });
+document.addEventListener("drop", (e) => { const f = e.dataTransfer?.files?.[0]; if (f) lireFichier(f); });
+
+window.oracle = { charger };  // pour déboguer depuis la console
+chargerAuto();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,575 @@
+{
+ "id": "CL56c9sqQp",
+ "createdTime": 1788907594870,
+ "closeTime": 1798790340000,
+ "question": "Will ANOTHER millennium prize problem be solved in 2026?",
+ "slug": "will-another-millennium-prize-probl",
+ "url": "https://manifold.markets/anonyme/will-another-millennium-prize-probl",
+ "pool": {
+  "NO": 25521.928767639256,
+  "YES": 2884.7816747998468
+ },
+ "probability": 0.9606960519840502,
+ "p": 0.7342403874692128,
+ "totalLiquidity": 5210,
+ "outcomeType": "BINARY",
+ "mechanism": "cpmm-1",
+ "volume": 1090441.036347819,
+ "volume24Hours": 344635.47292734677,
+ "isResolved": false,
+ "uniqueBettorCount": 869,
+ "lastUpdatedTime": 1795259581748,
+ "lastBetTime": 1795259581748,
+ "lastCommentTime": 1795248763376,
+ "token": "MANA",
+ "description": {
+  "type": "doc",
+  "content": [
+   {
+    "type": "heading",
+    "attrs": {
+     "level": 4
+    },
+    "content": [
+     {
+      "text": "Resolution criteria",
+      "type": "text"
+     }
+    ]
+   },
+   {
+    "type": "paragraph",
+    "content": [
+     {
+      "text": "This market will resolve to ",
+      "type": "text"
+     },
+     {
+      "text": "YES",
+      "type": "text",
+      "marks": [
+       {
+        "type": "bold"
+       }
+      ]
+     },
+     {
+      "text": " if, between September 9, 2026, and December 31, 2026, at 11:59 PM UTC, a proposed solution for at least one of the remaining five Millennium Prize Problems is formally announced or published.",
+      "type": "text"
+     }
+    ]
+   },
+   {
+    "type": "paragraph",
+    "content": [
+     {
+      "text": "The five eligible problems for this market are:",
+      "type": "text"
+     }
+    ]
+   },
+   {
+    "type": "orderedList",
+    "attrs": {
+     "start": 1
+    },
+    "content": [
+     {
+      "type": "listItem",
+      "content": [
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "P versus NP",
+          "type": "text",
+          "marks": [
+           {
+            "type": "bold"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "listItem",
+      "content": [
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "The Riemann Hypothesis",
+          "type": "text",
+          "marks": [
+           {
+            "type": "bold"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "listItem",
+      "content": [
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "Yang–Mills Existence and Mass Gap",
+          "type": "text",
+          "marks": [
+           {
+            "type": "bold"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "listItem",
+      "content": [
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "The Hodge Conjecture",
+          "type": "text",
+          "marks": [
+           {
+            "type": "bold"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "listItem",
+      "content": [
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "The Birch and Swinnerton-Dyer Conjecture",
+          "type": "text",
+          "marks": [
+           {
+            "type": "bold"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "type": "paragraph",
+    "content": [
+     {
+      "text": "For the purposes of this market's resolution:",
+      "type": "text"
+     }
+    ]
+   },
+   {
+    "type": "bulletList",
+    "content": [
+     {
+      "type": "listItem",
+      "content": [
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "Navier–Stokes Existence and Smoothness",
+          "type": "text",
+          "marks": [
+           {
+            "type": "bold"
+           }
+          ]
+         },
+         {
+          "text": " is ",
+          "type": "text"
+         },
+         {
+          "text": "excluded",
+          "type": "text",
+          "marks": [
+           {
+            "type": "bold"
+           }
+          ]
+         },
+         {
+          "text": " from resolving this market to YES. OpenAI announced a proposed solution to Navier–Stokes on September 8, 2026. This market specifically tracks whether ",
+          "type": "text"
+         },
+         {
+          "text": "another",
+          "type": "text",
+          "marks": [
+           {
+            "type": "italic"
+           }
+          ]
+         },
+         {
+          "text": " (i.e., a third) Millennium Prize Problem will have a solution claimed or published in 2026.",
+          "type": "text"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "listItem",
+      "content": [
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "Poincaré Conjecture",
+          "type": "text",
+          "marks": [
+           {
+            "type": "bold"
+           }
+          ]
+         },
+         {
+          "text": " is excluded as it was solved prior to 2026.",
+          "type": "text"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "listItem",
+      "content": [
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "The proposed solution must be put forward by a recognized mathematician, a reputable academic institution, or a major AI/technology research organization (such as OpenAI, Google DeepMind, Anthropic, etc.).",
+          "type": "text"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "listItem",
+      "content": [
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "The announcement must be accompanied by a published paper, a public preprint (such as on arXiv), or a formalized computer-verified proof (such as in Lean or Coq).",
+          "type": "text"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "listItem",
+      "content": [
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "The solution does not need to be officially verified or awarded by the Clay Mathematics Institute by the end of 2026 (as CMI rules require a two-year waiting period after publication). However, the solution must not be widely debunked or retracted by the mathematical community before December 31, 2026.",
+          "type": "text"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "type": "paragraph",
+    "content": [
+     {
+      "text": "If no other eligible Millennium Prize Problem has a proposed solution announced by the end of 2026, this market will resolve to ",
+      "type": "text"
+     },
+     {
+      "text": "NO",
+      "type": "text",
+      "marks": [
+       {
+        "type": "bold"
+       }
+      ]
+     },
+     {
+      "text": ".",
+      "type": "text"
+     }
+    ]
+   },
+   {
+    "type": "heading",
+    "attrs": {
+     "level": 4
+    },
+    "content": [
+     {
+      "text": "Background",
+      "type": "text"
+     }
+    ]
+   },
+   {
+    "type": "paragraph",
+    "content": [
+     {
+      "text": "The Millennium Prize Problems are seven mathematical puzzles selected by the Clay Mathematics Institute in 2000, each carrying a $1 million prize for a correct solution. For over two decades, the Poincaré Conjecture (solved by Grigori Perelman in 2002–2003) was the only solved problem.",
+      "type": "text"
+     }
+    ]
+   },
+   {
+    "type": "paragraph",
+    "content": [
+     {
+      "text": "On September 8, 2026, OpenAI published a paper claiming that an unreleased internal AI system had solved the Navier–Stokes existence and smoothness problem by proving that the equations can develop a singularity in finite time. This market is designed to predict if the rapid acceleration of AI capabilities or human mathematical breakthroughs will result in yet another of the remaining five unsolved classic problems being solved before the end of 2026.",
+      "type": "text"
+     }
+    ]
+   },
+   {
+    "type": "paragraph"
+   },
+   {
+    "type": "paragraph"
+   },
+   {
+    "type": "bulletList",
+    "content": [
+     {
+      "type": "listItem",
+      "content": [
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "Update 2026-09-10 (PST) (AI summary of ",
+          "type": "text"
+         },
+         {
+          "text": "creator comment",
+          "type": "text",
+          "marks": [
+           {
+            "type": "link",
+            "attrs": {
+             "href": "/HumanClanker/will-another-millennium-prize-probl#ydo9fcy6ocm",
+             "class": null,
+             "target": "_blank"
+            }
+           }
+          ]
+         },
+         {
+          "text": "): If a proposed solution is ",
+          "type": "text"
+         },
+         {
+          "text": "neither widely debunked nor widely accepted",
+          "type": "text",
+          "marks": [
+           {
+            "type": "bold"
+           }
+          ]
+         },
+         {
+          "text": " (remains controversial) by December 31, 2026:",
+          "type": "text"
+         }
+        ]
+       },
+       {
+        "type": "bulletList",
+        "content": [
+         {
+          "type": "listItem",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "text": "The creator will ",
+              "type": "text"
+             },
+             {
+              "text": "delay resolution for 2 to 3 months",
+              "type": "text",
+              "marks": [
+               {
+                "type": "bold"
+               }
+              ]
+             },
+             {
+              "text": " after the market closes.",
+              "type": "text"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "type": "listItem",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "text": "If the proof remains controversial after this period, the creator is leaning toward resolving the market to ",
+              "type": "text"
+             },
+             {
+              "text": "NO",
+              "type": "text",
+              "marks": [
+               {
+                "type": "bold"
+               }
+              ]
+             },
+             {
+              "text": " or ",
+              "type": "text"
+             },
+             {
+              "text": "N/A",
+              "type": "text",
+              "marks": [
+               {
+                "type": "bold"
+               }
+              ]
+             },
+             {
+              "text": " (rather than YES), and will consult with moderators and mathematicians to make a final decision.",
+              "type": "text"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "type": "paragraph"
+   },
+   {
+    "type": "bulletList",
+    "content": [
+     {
+      "type": "listItem",
+      "content": [
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "Update 2026-09-21 (PST) (AI summary of ",
+          "type": "text"
+         },
+         {
+          "text": "creator comment",
+          "type": "text",
+          "marks": [
+           {
+            "type": "link",
+            "attrs": {
+             "href": "/HumanClanker/will-another-millennium-prize-probl#tacb6dvo39",
+             "class": null,
+             "target": "_blank"
+            }
+           }
+          ]
+         },
+         {
+          "text": "): - The ",
+          "type": "text"
+         },
+         {
+          "text": "controversy clause",
+          "type": "text",
+          "marks": [
+           {
+            "type": "bold"
+           }
+          ]
+         },
+         {
+          "text": " applies strictly to the mathematical validity of the proof itself (e.g., disputed proofs like the ABC conjecture), not to public relations or circumstances surrounding the announcement.",
+          "type": "text"
+         }
+        ]
+       },
+       {
+        "type": "bulletList",
+        "content": [
+         {
+          "type": "listItem",
+          "content": [
+           {
+            "type": "paragraph",
+            "content": [
+             {
+              "text": "An announcement similar to the Navier-Stokes release ",
+              "type": "text"
+             },
+             {
+              "text": "will resolve to YES",
+              "type": "text",
+              "marks": [
+               {
+                "type": "bold"
+               }
+              ]
+             },
+             {
+              "text": ".",
+              "type": "text"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "groupSlugs": [
+  "mathematics",
+  "millenium-prize-problems",
+  "ai"
+ ],
+ "textDescription": "Resolution criteria\n\nThis market will resolve to YES if, between September 9, 2026, and December 31, 2026, at 11:59 PM UTC, a proposed solution for at least one of the remaining five Millennium Prize Problems is formally announced or published.\n\nThe five eligible problems for this market are:\n\nP versus NP\n\nThe Riemann Hypothesis\n\nYang–Mills Existence and Mass Gap\n\nThe Hodge Conjecture\n\nThe Birch and Swinnerton-Dyer Conjecture\n\nFor the purposes of this market's resolution:\n\nNavier–Stokes Existence and Smoothness is excluded from resolving this market to YES. OpenAI announced a proposed solution to Navier–Stokes on September 8, 2026. This market specifically tracks whether another (i.e., a third) Millennium Prize Problem will have a solution claimed or published in 2026.\n\nPoincaré Conjecture is excluded as it was solved prior to 2026.\n\nThe proposed solution must be put forward by a recognized mathematician, a reputable academic institution, or a major AI/technology research organization (such as OpenAI, Google DeepMind, Anthropic, etc.).\n\nThe announcement must be accompanied by a published paper, a public preprint (such as on arXiv), or a formalized computer-verified proof (such as in Lean or Coq).\n\nThe solution does not need to be officially verified or awarded by the Clay Mathematics Institute by the end of 2026 (as CMI rules require a two-year waiting period after publication). However, the solution must not be widely debunked or retracted by the mathematical community before December 31, 2026.\n\nIf no other eligible Millennium Prize Problem has a proposed solution announced by the end of 2026, this market will resolve to NO.\n\nBackground\n\nThe Millennium Prize Problems are seven mathematical puzzles selected by the Clay Mathematics Institute in 2000, each carrying a $1 million prize for a correct solution. For over two decades, the Poincaré Conjecture (solved by Grigori Perelman in 2002–2003) was the only solved problem.\n\nOn September 8, 2026, OpenAI published a paper claiming that an unreleased internal AI system had solved the Navier–Stokes existence and smoothness problem by proving that the equations can develop a singularity in finite time. This market is designed to predict if the rapid acceleration of AI capabilities or human mathematical breakthroughs will result in yet another of the remaining five unsolved classic problems being solved before the end of 2026.\n\nUpdate 2026-09-10 (PST) (AI summary of creator comment): If a proposed solution is neither widely debunked nor widely accepted (remains controversial) by December 31, 2026:\n\nThe creator will delay resolution for 2 to 3 months after the market closes.\n\nIf the proof remains controversial after this period, the creator is leaning toward resolving the market to NO or N/A (rather than YES), and will consult with moderators and mathematicians to make a final decision.\n\nUpdate 2026-09-21 (PST) (AI summary of creator comment): - The controversy clause applies strictly to the mathematical validity of the proof itself (e.g., disputed proofs like the ABC conjecture), not to public relations or circumstances surrounding the announcement.\n\nAn announcement similar to the Navier-Stokes release will resolve to YES."
+}

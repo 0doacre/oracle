@@ -1,0 +1,8 @@
+[project]
+name = "oracle"
+version = "0.1.0"
+description = "Oracle personnel : collecte d'information publique et briefing compact."
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

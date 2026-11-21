@@ -1,0 +1,94 @@
+# Un relevé toutes les heures ; le point part par mail à 7 h, 12 h et 19 h (Paris) ;
+# la page (lecteur + briefing + point) est republiée à chaque relevé.
+# « Run workflow » dans l'onglet Actions : un relevé tout de suite, mail compris.
+#
+# L'historique (base SQLite, créneaux déjà envoyés, journal) survit d'une exécution
+# à l'autre par le cache d'Actions : rien n'est commis dans le dépôt. Si le cache
+# disparaît (7 jours sans exécution), les variations repartent de zéro.
+
+name: oracle
+
+on:
+  schedule:
+    - cron: "5 * * * *"          # chaque heure à hh:05 UTC ; GitHub peut prendre du retard
+  workflow_dispatch:
+    inputs:
+      envoyer:
+        description: "Envoyer le mail maintenant, quelle que soit l'heure"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: oracle
+  cancel-in-progress: false
+
+jobs:
+  releve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Reprendre l'historique
+        uses: actions/cache/restore@v4
+        with:
+          path: etat
+          key: oracle-etat-${{ github.run_id }}
+          restore-keys: oracle-etat-
+
+      - name: Tests (sans réseau)
+        run: |
+          python -m pip install --quiet pytest
+          python -m pytest -q
+
+      - name: Relevé
+        run: |
+          mkdir -p etat site
+          python collecteur.py --base etat/oracle_state.db --sortie site/briefing_oracle.json --journal etat/oracle.log
+
+      - name: Point et mail
+        # Un mail raté (secrets absents, Gmail indisponible) ne doit pas empêcher
+        # la page de se mettre à jour ; l'erreur reste visible dans le journal.
+        continue-on-error: true
+        env:
+          ORACLE_SMTP_UTILISATEUR: ${{ secrets.ORACLE_SMTP_UTILISATEUR }}
+          ORACLE_SMTP_MOT_DE_PASSE: ${{ secrets.ORACLE_SMTP_MOT_DE_PASSE }}
+          ORACLE_DESTINATAIRE: ${{ secrets.ORACLE_DESTINATAIRE }}
+          FORCER: ${{ github.event_name == 'workflow_dispatch' && inputs.envoyer && '--forcer' || '' }}
+        run: |
+          python diffuser.py --briefing site/briefing_oracle.json --site site --etat etat/envois.json --journal etat/oracle.log $FORCER
+
+      - name: Journal
+        if: always()
+        run: tail -n 15 etat/oracle.log || true
+
+      - name: Garder l'historique
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: etat
+          key: oracle-etat-${{ github.run_id }}
+
+      - name: Construire la page
+        run: cp lecteur.html site/index.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploiement
+        uses: actions/deploy-pages@v4

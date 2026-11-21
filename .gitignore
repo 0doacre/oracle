@@ -1,0 +1,31 @@
+# Secrets et fichiers locaux
+.env
+.env.*
+*.key
+local/
+.claude/settings.local.json
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Données générées
+*.db
+briefing_*.json
+
+# Système
+Thumbs.db
+.DS_Store
+
+# Journal et fichiers provisoires du collecteur
+oracle.log*
+*.tmp
+
+# Points matinaux générés
+points/
+
+# Produits par le workflow GitHub (ou un essai local)
+site/
+etat/
